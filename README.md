@@ -126,13 +126,6 @@ Duplicate locations (same lat/lon as last poll) are always skipped regardless of
 | `ha_polling_interval` | `30` | How often (in seconds) to poll devices that are moving. Range: 5-3600. Lower = more detailed tracks but more resource usage. See [Adaptive polling](#adaptive-polling) for details. |
 | `ha_polling_interval_stationary` | `300` | How often (in seconds) to poll devices that haven't moved. Range: 30-3600. Higher = less wasted polling when devices are stationary. Automatically switches to the moving interval when movement is detected. |
 
-### Optional / Advanced
-
-| Option | Default | Description |
-|---|---|---|
-| `photon_api_host` | _(empty)_ | URL of a self-hosted [Photon](https://github.com/komoot/photon) geocoding server for reverse geocoding (turning coordinates into addresses). Leave empty to skip or use Dawarich's built-in options. |
-| `geoapify_api_key` | _(empty)_ | API key for [Geoapify](https://www.geoapify.com/) reverse geocoding service. Free tier covers personal use. Configure this if you want automatic address labels on your location points. |
-
 ## Data & Backups
 
 All data persists across addon restarts and updates under `/data/`:

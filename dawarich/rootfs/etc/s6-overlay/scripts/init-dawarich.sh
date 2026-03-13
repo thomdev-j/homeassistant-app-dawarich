@@ -39,14 +39,6 @@ printf '%s' "$(bashio::config 'ha_tracked_entities')" > /var/run/s6/container_en
 printf '%s' "$(bashio::config 'ha_polling_interval')" > /var/run/s6/container_environment/HA_POLLING_INTERVAL
 printf '%s' "$(bashio::config 'ha_polling_interval_stationary')" > /var/run/s6/container_environment/HA_POLLING_INTERVAL_STATIONARY
 
-# Optional vars
-if bashio::config.has_value 'photon_api_host'; then
-  printf '%s' "$(bashio::config 'photon_api_host')" > /var/run/s6/container_environment/PHOTON_API_HOST
-fi
-if bashio::config.has_value 'geoapify_api_key'; then
-  printf '%s' "$(bashio::config 'geoapify_api_key')" > /var/run/s6/container_environment/GEOAPIFY_API_KEY
-fi
-
 # --- SECRET_KEY_BASE: auto-generate on first run, persist to /data ---
 if [ -f /data/dawarich/secret_key_base ]; then
   cat /data/dawarich/secret_key_base > /var/run/s6/container_environment/SECRET_KEY_BASE

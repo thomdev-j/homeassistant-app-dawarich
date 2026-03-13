@@ -70,13 +70,6 @@ The tracker uses two intervals to balance data resolution against resource usage
 
 Duplicate locations (same lat/lon) are always skipped — no redundant data is stored.
 
-### Optional / Advanced
-
-| Option | Default | Description |
-|---|---|---|
-| `photon_api_host` | _(optional)_ | URL of a self-hosted Photon geocoding server for reverse geocoding. |
-| `geoapify_api_key` | _(optional)_ | Geoapify API key for reverse geocoding. Free tier covers personal use. |
-
 ### Important Notes
 
 - **`application_hosts`** must include the hostname/IP you use to access the UI, or Rails will reject requests (not needed for ingress)
