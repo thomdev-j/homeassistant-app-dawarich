@@ -209,7 +209,7 @@ Stop the addon, delete the `/data/` directory contents via SSH or the file edito
 
 This addon is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
-This addon packages and distributes [Dawarich](https://github.com/Freika/dawarich), copyright [Freika](https://github.com/Freika), also licensed under AGPL-3.0.
+This addon builds on top of the [Dawarich](https://github.com/Freika/dawarich) Docker image (`freikin/dawarich`), copyright [Freika](https://github.com/Freika), also licensed under AGPL-3.0.
 
 ## Links
 
