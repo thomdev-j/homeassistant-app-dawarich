@@ -1,5 +1,5 @@
 name: Dawarich
-version: "1.3.3-22"
+version: "1.3.3-23"
 slug: dawarich
 description: Self-hosted location tracking — Google Timeline alternative
 url: https://github.com/thomdev-j/homeassistant-addon-dawarich
@@ -10,8 +10,7 @@ init: false
 startup: application
 hassio_api: true
 homeassistant_api: true
-ingress: true
-ingress_port: 3000
+webui: http://[HOST]:[PORT:3000]
 panel_icon: mdi:map-marker-path
 panel_title: Dawarich
 ports:
