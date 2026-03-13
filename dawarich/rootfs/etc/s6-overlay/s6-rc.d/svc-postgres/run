@@ -1,5 +1,5 @@
 #!/usr/bin/with-contenv bash
-exec su - postgres -c "postgres -D /data/postgres -k /run/postgresql \
+exec su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH postgres -D /data/postgres -k /run/postgresql \
   -c shared_buffers=256MB \
   -c work_mem=16MB \
   -c effective_cache_size=512MB"

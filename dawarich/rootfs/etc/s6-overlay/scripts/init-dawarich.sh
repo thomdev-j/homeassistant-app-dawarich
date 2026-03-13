@@ -1,5 +1,7 @@
 #!/usr/bin/with-contenv bashio
 
+export PATH="/usr/lib/postgresql/17/bin:${PATH}"
+
 # --- Create persistent data directories (HA mounts /data fresh) ---
 mkdir -p /data/postgres /data/redis /data/dawarich/storage /data/dawarich/public
 mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql
@@ -50,7 +52,7 @@ fi
 if [ ! -f /data/postgres/PG_VERSION ]; then
   bashio::log.info "Initializing PostgreSQL database..."
   chown -R postgres:postgres /data/postgres
-  su - postgres -c "initdb -D /data/postgres"
+  su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH initdb -D /data/postgres"
   # Trust auth: safe because PG binds to localhost only, port 5432 not exposed
   cat > /data/postgres/pg_hba.conf <<'PGEOF'
 # Trust is safe here: PostgreSQL is only accessible via localhost within
