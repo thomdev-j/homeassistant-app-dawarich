@@ -50,6 +50,9 @@ http {
             proxy_redirect http://localhost:3000/ $scheme://$http_hostINGRESS_PATH/;
             proxy_redirect http://127.0.0.1:3000/ $scheme://$http_hostINGRESS_PATH/;
 
+            # Strip Link preload headers (paths aren't rewritable, causes 404s)
+            proxy_hide_header Link;
+
             # Rewrite cookie paths
             proxy_cookie_path / INGRESS_PATH/;
 
@@ -73,6 +76,16 @@ http {
             sub_filter 'url(/' 'url(INGRESS_PATH/';
             sub_filter "url('/" "url('INGRESS_PATH/";
             sub_filter 'url("/' 'url("INGRESS_PATH/';
+
+            # JS string patterns for API and map paths
+            sub_filter '"/api/' '"INGRESS_PATH/api/';
+            sub_filter "'/api/" "'INGRESS_PATH/api/";
+            sub_filter '"/maps' '"INGRESS_PATH/maps';
+            sub_filter "'/maps" "'INGRESS_PATH/maps";
+            sub_filter '"/users/' '"INGRESS_PATH/users/';
+            sub_filter "'/users/" "'INGRESS_PATH/users/";
+            sub_filter '"/rails/' '"INGRESS_PATH/rails/';
+            sub_filter "'/rails/" "'INGRESS_PATH/rails/";
 
             # JS fetch/XHR patterns
             sub_filter 'fetch("/' 'fetch("INGRESS_PATH/';
