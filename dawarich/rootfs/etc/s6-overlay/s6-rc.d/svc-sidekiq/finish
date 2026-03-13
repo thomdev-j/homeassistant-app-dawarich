@@ -1,0 +1,4 @@
+#!/usr/bin/with-contenv bash
+# Give Sidekiq time to finish in-progress jobs before s6 sends SIGKILL
+# Sidekiq traps SIGTERM and stops picking new jobs, then waits for current ones
+sleep 10

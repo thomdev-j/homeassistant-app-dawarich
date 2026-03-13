@@ -24,7 +24,10 @@ ln -sf /data/dawarich/public /var/app/public/uploads
 cd /var/app
 
 # Run database migrations
-bundle exec rails db:migrate 2>&1
+if ! bundle exec rails db:migrate 2>&1; then
+  echo "ERROR: Database migration failed! Check logs above."
+  exit 1
+fi
 
 # Create default admin user if it doesn't exist yet
 ADMIN_EMAIL=$(cat /var/run/s6/container_environment/ADMIN_EMAIL 2>/dev/null || echo "")
