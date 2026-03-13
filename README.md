@@ -2,20 +2,17 @@
 
 [![HA Addon][ha-addon-badge]][ha-addon-link]
 
-**This addon runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device.** No separate server, no Docker Compose setup, no external hosting — just install the addon and you have a fully working, self-hosted alternative to Google Timeline.
-
-Dawarich lets you track your location history, visualize trips on a map, and keep full control of your data. This addon packages everything it needs (PostgreSQL, Redis, Sidekiq, Nginx) into a single container that runs alongside your other HA addons.
+**This addon runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
 
 > **Note:** This addon requires [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS), which provides the addon system. Home Assistant Container or Core installations cannot run addons.
 
 ## Features
 
-- **Automatic location tracking** — polls HA device tracker entities and pushes GPS data to Dawarich
-- **Multi-user support** — track multiple household members, each with their own Dawarich account and color on the map
-- **Family map** — use Dawarich's built-in Family feature to share real-time locations between users
+- **Zero setup** — PostgreSQL, Redis, and all dependencies bundled in a single addon container
+- **Automatic HA device tracking** — polls your `device_tracker` entities and pushes GPS data to Dawarich automatically
+- **Multi-device, multi-user** — assign devices to separate Dawarich users per household member via addon config
 - **HA Ingress** — access the UI securely through the Home Assistant sidebar, no extra ports needed
-- **Full backups** — integrates with HA's backup system including PostgreSQL dumps
-- **Import support** — import existing location history from Google Takeout, OwnTracks, GPX, and more
+- **Full backups** — integrates with HA's backup system including automatic PostgreSQL dumps
 
 ## Quick Start
 

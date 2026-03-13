@@ -1,6 +1,6 @@
 # Dawarich Home Assistant Addon
 
-**This addon runs a full Dawarich instance directly on your Home Assistant device.** No separate server, no Docker Compose setup, no external hosting needed — just install and go. Dawarich is a self-hosted alternative to Google Timeline that lets you track your location history, visualize trips, and keep full control of your data.
+**This addon runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
 
 ## Overview
 
