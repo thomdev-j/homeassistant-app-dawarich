@@ -4,6 +4,7 @@ export PATH="/usr/lib/postgresql/17/bin:${PATH}"
 
 # --- Create persistent data directories (HA mounts /data fresh) ---
 mkdir -p /data/postgres /data/redis /data/dawarich/storage /data/dawarich/public
+mkdir -p /var/app/tmp/imports/watched
 mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql
 
 # --- Hardcoded infrastructure env vars ---
