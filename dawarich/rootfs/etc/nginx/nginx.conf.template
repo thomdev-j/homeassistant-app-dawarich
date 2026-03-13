@@ -62,6 +62,10 @@ http {
             sub_filter 'action="/' 'action="INGRESS_PATH/';
             sub_filter "action='/" "action='INGRESS_PATH/";
 
+            # Meta tag content paths (e.g. ActionCable URL meta tag)
+            sub_filter 'content="/' 'content="INGRESS_PATH/';
+            sub_filter "content='/" "content='INGRESS_PATH/";
+
             # Importmap and inline JS JSON (e.g. "/assets/foo.js" in <script type="importmap">)
             sub_filter '"/assets/' '"INGRESS_PATH/assets/';
             sub_filter "'/assets/" "'INGRESS_PATH/assets/";
@@ -71,11 +75,15 @@ http {
             sub_filter "url('/" "url('INGRESS_PATH/";
             sub_filter 'url("/' 'url("INGRESS_PATH/';
 
+            # Rewrite full localhost URLs Rails generates (we set Host: localhost)
+            sub_filter 'http://localhost/' 'INGRESS_PATH/';
+            sub_filter 'http://localhost:3000/' 'INGRESS_PATH/';
+
             # Meta refresh redirects
             sub_filter 'content="0;url=/' 'content="0;url=INGRESS_PATH/';
 
-            # Inject JS to patch fetch/XHR so ALL routes work without per-path sub_filters
-            sub_filter '</head>' '<script>(function(){var P="INGRESS_PATH";if(!P)return;var F=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return F.call(this,u,o)};var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return X.apply(this,arguments)}})()</script></head>';
+            # Inject JS to patch fetch/XHR/WebSocket so ALL routes work without per-path sub_filters
+            sub_filter '</head>' '<script>(function(){var P="INGRESS_PATH";if(!P)return;var F=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return F.call(this,u,o)};var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return X.apply(this,arguments)};var W=window.WebSocket;window.WebSocket=new Proxy(W,{construct:function(t,a){var u=a[0];if(typeof u==="string"){try{var o=new URL(u);if(!o.pathname.startsWith(P)){o.pathname=P+o.pathname;a=a.slice();a[0]=o.toString()}}catch(e){if(u.startsWith("/")&&!u.startsWith(P)){a=a.slice();a[0]=P+u}}}return Reflect.construct(t,a)}})})()</script></head>';
         }
     }
 }
