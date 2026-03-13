@@ -48,14 +48,10 @@ if bashio::config.has_value 'geoapify_api_key'; then
 fi
 
 # --- SECRET_KEY_BASE: auto-generate on first run, persist to /data ---
-if [ -z "$(bashio::config 'secret_key_base')" ]; then
-  if [ -f /data/dawarich/secret_key_base ]; then
-    cat /data/dawarich/secret_key_base > /var/run/s6/container_environment/SECRET_KEY_BASE
-  else
-    openssl rand -hex 64 | tee /data/dawarich/secret_key_base > /var/run/s6/container_environment/SECRET_KEY_BASE
-  fi
+if [ -f /data/dawarich/secret_key_base ]; then
+  cat /data/dawarich/secret_key_base > /var/run/s6/container_environment/SECRET_KEY_BASE
 else
-  printf '%s' "$(bashio::config 'secret_key_base')" > /var/run/s6/container_environment/SECRET_KEY_BASE
+  openssl rand -hex 64 | tee /data/dawarich/secret_key_base > /var/run/s6/container_environment/SECRET_KEY_BASE
 fi
 
 # --- PostgreSQL init on first run ---

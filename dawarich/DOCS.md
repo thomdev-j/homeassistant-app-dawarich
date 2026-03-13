@@ -28,7 +28,6 @@ This addon bundles [Dawarich](https://github.com/Freika/dawarich) with all requi
 | `admin_email` | `admin@dawarich.local` | Admin user email for Dawarich login. |
 | `admin_password` | `changeme` | Admin user password. **Change this!** |
 | `database_password` | `dawarich` | PostgreSQL password. Change from default for security. |
-| `secret_key_base` | _(auto-generated)_ | Rails secret key. Leave empty for auto-generation on first run. |
 | `time_zone` | `Etc/UTC` | Timezone for the application (e.g., `America/New_York`, `Europe/Berlin`). |
 | `application_hosts` | `homeassistant.local,localhost` | Comma-separated list of hostnames the app responds to. Add your HA hostname/IP. |
 | `background_processing_concurrency` | `5` | Number of Sidekiq worker threads (1-20). Lower for constrained devices. |
@@ -75,7 +74,7 @@ After creating multiple users, you can set up Dawarich's built-in Family feature
 
 - **First start** takes several minutes while PostgreSQL initializes and Rails runs migrations
 - **`application_hosts`** must include the hostname/IP you use to access the UI, or Rails will reject requests
-- **`secret_key_base`** is auto-generated and stored in `/data/dawarich/secret_key_base` — do not change it after initial setup or existing sessions will be invalidated
+- **`secret_key_base`** is auto-generated on first start and stored in `/data/dawarich/secret_key_base` — sessions are invalidated if this file is deleted
 - **Admin user** is created on first start with the configured email/password. The password is only set on creation — changing it in the addon config won't update an existing user. Use the Dawarich UI to change passwords.
 
 ## Data Persistence
