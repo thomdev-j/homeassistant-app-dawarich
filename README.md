@@ -2,9 +2,11 @@
 
 [![HA Addon][ha-addon-badge]][ha-addon-link]
 
-A Home Assistant addon that runs [Dawarich](https://github.com/Freika/dawarich) — a self-hosted alternative to Google Timeline. Track your location history, visualize trips on a map, and keep full control of your data.
+**This addon runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device.** No separate server, no Docker Compose setup, no external hosting — just install the addon and you have a fully working, self-hosted alternative to Google Timeline.
 
-Everything runs in a single addon container: PostgreSQL, Redis, Sidekiq, and the Dawarich web app. No external services required.
+Dawarich lets you track your location history, visualize trips on a map, and keep full control of your data. This addon packages everything it needs (PostgreSQL, Redis, Sidekiq, Nginx) into a single container that runs alongside your other HA addons.
+
+> **Note:** This addon is designed for [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS) and [Home Assistant Supervised](https://www.home-assistant.io/installation/#compare-installation-methods). It requires the HA addon system — Home Assistant Container or Core installations cannot run addons.
 
 ## Features
 
