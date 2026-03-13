@@ -44,8 +44,6 @@ fi
 # --- Per-entity API key setup for multi-user device tracking ---
 mkdir -p /data/dawarich/api_keys
 HA_TRACKED_ENTITIES=$(cat /var/run/s6/container_environment/HA_TRACKED_ENTITIES 2>/dev/null || echo "")
-SECRET_KEY_BASE=$(cat /var/run/s6/container_environment/SECRET_KEY_BASE 2>/dev/null || echo "")
-
 if [ -n "$HA_TRACKED_ENTITIES" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
   # Build list of users to create and entity→key mappings
   declare -A USER_ENTITIES  # name → space-separated entity_ids
@@ -84,13 +82,11 @@ if [ -n "$HA_TRACKED_ENTITIES" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWO
 
   # Build Ruby script for creating named users (single rails runner call)
   if [ ${#USER_ENTITIES[@]} -gt 0 ]; then
-    RUBY_SCRIPT="secret = '${SECRET_KEY_BASE}'\n"
-    RUBY_SCRIPT+="require 'digest'\n"
+    RUBY_SCRIPT=""
 
     for name in "${!USER_ENTITIES[@]}"; do
       email="${name}@dawarich.local"
-      # Deterministic password: sha256(secret + name) truncated to 24 chars
-      password=$(echo -n "${SECRET_KEY_BASE}${name}" | sha256sum | cut -c1-24)
+      password="password"
       entities="${USER_ENTITIES[$name]}"
 
       RUBY_SCRIPT+="begin\n"
