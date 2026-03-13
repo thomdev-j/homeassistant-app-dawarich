@@ -8,7 +8,7 @@ done
 # Wait briefly for database to be created by svc-dawarich
 sleep 5
 
-cd /app
+cd /var/app
 
 CONCURRENCY=$(cat /var/run/s6/container_environment/BACKGROUND_PROCESSING_CONCURRENCY)
 exec bundle exec sidekiq -c "${CONCURRENCY:-5}"

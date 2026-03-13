@@ -17,11 +17,11 @@ su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -tc \"SELECT 1 FRO
 su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -d ${DB_NAME} -c 'CREATE EXTENSION IF NOT EXISTS postgis;'"
 
 # Symlink storage and public directories to persistent data
-rm -rf /app/public/uploads
-ln -sf /data/dawarich/storage /app/storage
-ln -sf /data/dawarich/public /app/public/uploads
+rm -rf /var/app/public/uploads
+ln -sf /data/dawarich/storage /var/app/storage
+ln -sf /data/dawarich/public /var/app/public/uploads
 
-cd /app
+cd /var/app
 
 # Run database migrations
 bundle exec rails db:migrate 2>&1
