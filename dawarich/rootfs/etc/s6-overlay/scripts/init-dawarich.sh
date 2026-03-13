@@ -86,13 +86,10 @@ if [ -n "$INGRESS_ENTRY" ]; then
   # Remove trailing slash
   INGRESS_ENTRY="${INGRESS_ENTRY%/}"
   bashio::log.info "Ingress path: ${INGRESS_ENTRY}"
-  # Make ingress path available to Rails middleware
-  printf '%s' "$INGRESS_ENTRY" > /var/run/s6/container_environment/INGRESS_PATH
   sed "s|INGRESS_PATH|${INGRESS_ENTRY}|g" \
     /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 else
   bashio::log.warning "Could not determine ingress path, using passthrough"
-  printf '' > /var/run/s6/container_environment/INGRESS_PATH
   sed "s|INGRESS_PATH||g" \
     /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 fi
