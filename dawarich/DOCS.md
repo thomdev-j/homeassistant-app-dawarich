@@ -54,7 +54,7 @@ ha_tracked_entities: "device_tracker.my_phone"
 ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.partner_phone:Bob"
 ```
 
-This creates `alice@dawarich.local` and `bob@dawarich.local` with default password `password`. Each device's location data is sent to its own user. Users can change their password after first login via the Dawarich settings page.
+This creates `alice@dawarich.local` and `bob@dawarich.local` with default password `password`. Each device's location data is sent to its own user. Users can change their password after first login via the Dawarich settings page. Once multiple users exist, you can use Dawarich's built-in **Family** feature to see everyone on a shared map with different colors.
 
 Entities without a `:Name` suffix use the admin user. You can mix both styles:
 ```
@@ -69,15 +69,6 @@ The tracker uses two intervals to balance data resolution against resource usage
 - **Stationary interval** — used when a device hasn't moved. Avoids wasting resources polling a device sitting on a desk. Automatically switches back to the moving interval when movement is detected.
 
 Duplicate locations (same lat/lon) are always skipped — no redundant data is stored.
-
-#### Family Map (multi-user)
-
-After creating multiple users, you can set up Dawarich's built-in Family feature to see everyone on a shared map with different colors:
-
-1. Log into Dawarich as admin
-2. Go to **Family** and create a group
-3. Invite the other user(s)
-4. Each user accepts and enables location sharing
 
 ### Optional / Advanced
 

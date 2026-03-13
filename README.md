@@ -76,7 +76,7 @@ This automatically creates:
 - `alice@dawarich.local` (password: `password`)
 - `bob@dawarich.local` (password: `password`)
 
-Each device's location data goes to its own user. Users can change their password after first login via the Dawarich settings page.
+Each device's location data goes to its own user. Users can change their password after first login via the Dawarich settings page. Once multiple users exist, you can use Dawarich's built-in **Family** feature to see everyone on a shared map with different colors.
 
 Two devices for the same person share one user — just use the same name:
 
@@ -105,24 +105,13 @@ Duplicate locations (same lat/lon as last poll) are always skipped regardless of
 - On low-power devices (Pi 3), increase `ha_polling_interval_stationary` to `600` or higher
 - The minimum allowed value is `5s` (moving) and `30s` (stationary)
 
-### Family Map
-
-To see all household members on a shared map with different colors:
-
-1. Log into Dawarich as admin
-2. Go to **Family** → create a group
-3. Invite the other user(s)
-4. Each user accepts and enables location sharing
-
-This is a one-time setup in the Dawarich UI.
-
 ## All Configuration Options
 
 ### General
 
 | Option | Default | Description |
 |---|---|---|
-| `admin_email` | `admin@dawarich.local` | Email address used to log into Dawarich as admin. Also shown in the Users page. |
+| `admin_email` | `admin@dawarich.local` | Email address used to log into Dawarich as admin. |
 | `admin_password` | `changeme` | Password for the admin account. Only used on first creation — changing this later won't update an existing account. Change your password through the Dawarich UI instead. |
 | `time_zone` | `Etc/UTC` | Timezone for displaying dates and times in the UI. Uses standard [tz database names](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) (e.g. `America/New_York`, `Europe/Berlin`, `Asia/Tokyo`). |
 | `database_password` | `dawarich` | Password for the internal PostgreSQL database. Only relevant inside the container — not exposed externally. Changing this after first setup requires manual database migration. |
@@ -166,13 +155,13 @@ All data persists across addon restarts and updates under `/data/`:
 
 ## FAQ
 
-### Can I import my Google Timeline data?
-
-Yes. Export your data from [Google Takeout](https://takeout.google.com/) (select "Location History"), then use Dawarich's **My Data → Import** page to upload it.
-
 ### Do I need the Dawarich phone app?
 
-Not if you're using the HA device tracking feature (`ha_tracked_entities`). The addon polls Home Assistant directly. You can still use the [Dawarich phone app](https://github.com/Freika/dawarich) or OwnTracks in addition if you prefer.
+No. The addon polls your HA device trackers directly. You can optionally use the Dawarich phone app or OwnTracks alongside it — see the [Dawarich docs](https://dawarich.app/) for details.
+
+### Can I import existing location history?
+
+Yes. Dawarich supports importing from Google Takeout, OwnTracks, GPX, and more via its **My Data → Import** page.
 
 ### I get a blank page or "blocked host" error
 
