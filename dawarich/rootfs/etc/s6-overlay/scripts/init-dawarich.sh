@@ -76,3 +76,20 @@ fi
 # Ensure ownership is correct on restarts
 chown -R postgres:postgres /data/postgres
 chown -R postgres:postgres /run/postgresql
+
+# --- Generate nginx ingress proxy config ---
+# Fetch the ingress entry path from Supervisor API (e.g. /api/hassio_ingress/<token>)
+INGRESS_ENTRY=$(curl -s -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+  http://supervisor/addons/self/info 2>/dev/null | jq -r '.data.ingress_entry // empty')
+
+if [ -n "$INGRESS_ENTRY" ]; then
+  # Remove trailing slash
+  INGRESS_ENTRY="${INGRESS_ENTRY%/}"
+  bashio::log.info "Ingress path: ${INGRESS_ENTRY}"
+  sed "s|INGRESS_PATH|${INGRESS_ENTRY}|g" \
+    /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+else
+  bashio::log.warning "Could not determine ingress path, using passthrough"
+  sed "s|INGRESS_PATH||g" \
+    /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+fi

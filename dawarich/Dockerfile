@@ -7,7 +7,7 @@ ARG BUILD_ARCH
 
 # System packages: Redis, PG prerequisites
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    xz-utils jq redis-server gnupg lsb-release \
+    xz-utils jq redis-server gnupg lsb-release nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # PostgreSQL 17 + PostGIS from PGDG

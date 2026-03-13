@@ -1,0 +1,66 @@
+daemon off;
+worker_processes 1;
+pid /tmp/nginx.pid;
+error_log stderr warn;
+
+events {
+    worker_connections 128;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    access_log off;
+
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+
+    server {
+        listen 8099;
+
+        location / {
+            proxy_pass http://127.0.0.1:3000;
+
+            proxy_http_version 1.1;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+
+            # WebSocket support (ActionCable)
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+
+            # Rewrite redirect headers (Location: /foo → Location: INGRESS_PATH/foo)
+            proxy_redirect / INGRESS_PATH/;
+
+            # Rewrite cookie paths
+            proxy_cookie_path / INGRESS_PATH/;
+
+            # Rewrite absolute paths in HTML responses
+            sub_filter_types text/html text/css application/javascript text/javascript;
+            sub_filter_once off;
+
+            # HTML attributes
+            sub_filter 'href="/' 'href="INGRESS_PATH/';
+            sub_filter "href='/" "href='INGRESS_PATH/";
+            sub_filter 'src="/' 'src="INGRESS_PATH/';
+            sub_filter "src='/" "src='INGRESS_PATH/";
+            sub_filter 'action="/' 'action="INGRESS_PATH/';
+            sub_filter "action='/" "action='INGRESS_PATH/";
+
+            # CSS url() references
+            sub_filter 'url(/' 'url(INGRESS_PATH/';
+            sub_filter "url('/" "url('INGRESS_PATH/";
+            sub_filter 'url("/' 'url("INGRESS_PATH/';
+
+            # JavaScript fetch/XMLHttpRequest patterns
+            sub_filter 'fetch("/' 'fetch("INGRESS_PATH/';
+            sub_filter "fetch('/" "fetch('INGRESS_PATH/";
+
+            # Turbo/meta refresh
+            sub_filter 'content="0;url=/' 'content="0;url=INGRESS_PATH/';
+        }
+    }
+}

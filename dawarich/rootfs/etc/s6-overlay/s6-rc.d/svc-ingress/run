@@ -1,0 +1,6 @@
+#!/usr/bin/with-contenv bash
+# Wait for the generated nginx config (written by init-dawarich.sh)
+while [ ! -f /etc/nginx/nginx.conf ]; do
+  sleep 1
+done
+exec nginx -c /etc/nginx/nginx.conf
