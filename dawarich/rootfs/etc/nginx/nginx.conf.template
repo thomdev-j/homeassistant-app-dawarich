@@ -82,6 +82,9 @@ http {
             sub_filter "'/api/" "'INGRESS_PATH/api/";
             sub_filter '"/maps' '"INGRESS_PATH/maps';
             sub_filter "'/maps" "'INGRESS_PATH/maps";
+            sub_filter '`/maps' '`INGRESS_PATH/maps';
+            sub_filter '"/cable' '"INGRESS_PATH/cable';
+            sub_filter "'/cable" "'INGRESS_PATH/cable";
             sub_filter '"/users/' '"INGRESS_PATH/users/';
             sub_filter "'/users/" "'INGRESS_PATH/users/";
             sub_filter '"/rails/' '"INGRESS_PATH/rails/';
