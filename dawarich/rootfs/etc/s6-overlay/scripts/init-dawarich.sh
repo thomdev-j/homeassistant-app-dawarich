@@ -30,6 +30,15 @@ printf '%s' "$(bashio::config 'time_zone')" > /var/run/s6/container_environment/
 printf '%s' "$(bashio::config 'application_hosts')" > /var/run/s6/container_environment/APPLICATION_HOSTS
 printf '%s' "$(bashio::config 'background_processing_concurrency')" > /var/run/s6/container_environment/BACKGROUND_PROCESSING_CONCURRENCY
 
+# Admin user credentials
+printf '%s' "$(bashio::config 'admin_email')" > /var/run/s6/container_environment/ADMIN_EMAIL
+printf '%s' "$(bashio::config 'admin_password')" > /var/run/s6/container_environment/ADMIN_PASSWORD
+
+# HA location tracker settings
+printf '%s' "$(bashio::config 'ha_tracked_entities')" > /var/run/s6/container_environment/HA_TRACKED_ENTITIES
+printf '%s' "$(bashio::config 'ha_polling_interval')" > /var/run/s6/container_environment/HA_POLLING_INTERVAL
+printf '%s' "$(bashio::config 'ha_polling_interval_stationary')" > /var/run/s6/container_environment/HA_POLLING_INTERVAL_STATIONARY
+
 # Optional vars
 if bashio::config.has_value 'photon_api_host'; then
   printf '%s' "$(bashio::config 'photon_api_host')" > /var/run/s6/container_environment/PHOTON_API_HOST

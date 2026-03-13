@@ -26,6 +26,21 @@ cd /var/app
 # Run database migrations
 bundle exec rails db:migrate 2>&1
 
+# Create default admin user if it doesn't exist yet
+ADMIN_EMAIL=$(cat /var/run/s6/container_environment/ADMIN_EMAIL 2>/dev/null || echo "")
+ADMIN_PASSWORD=$(cat /var/run/s6/container_environment/ADMIN_PASSWORD 2>/dev/null || echo "")
+if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
+  bundle exec rails runner "
+    user = User.find_or_create_by!(email: '${ADMIN_EMAIL}') do |u|
+      u.password = '${ADMIN_PASSWORD}'
+      u.password_confirmation = '${ADMIN_PASSWORD}'
+      puts 'Created default admin user: ${ADMIN_EMAIL}'
+    end
+    File.write('/data/dawarich/api_key', user.api_key)
+    puts \"API key saved to /data/dawarich/api_key\"
+  " 2>&1
+fi
+
 # Precompile assets if needed
 if [ ! -f /data/dawarich/.assets_precompiled ] || [ "$DAWARICH_VERSION_CHANGED" = "true" ]; then
   bundle exec rails assets:precompile 2>&1
