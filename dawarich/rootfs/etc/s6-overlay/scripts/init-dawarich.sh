@@ -1,5 +1,9 @@
 #!/usr/bin/with-contenv bashio
 
+# --- Create persistent data directories (HA mounts /data fresh) ---
+mkdir -p /data/postgres /data/redis /data/dawarich/storage /data/dawarich/public
+mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql
+
 # --- Hardcoded infrastructure env vars ---
 for kv in \
   "DATABASE_HOST=localhost" \
