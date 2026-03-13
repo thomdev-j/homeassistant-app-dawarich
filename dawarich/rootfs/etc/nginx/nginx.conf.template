@@ -34,9 +34,8 @@ http {
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
 
-            # Rewrite redirect Location headers (Rails generates absolute URLs using Host header)
-            proxy_redirect http://127.0.0.1:3000/ INGRESS_PATH/;
-            proxy_redirect / INGRESS_PATH/;
+            # Rewrite redirect Location headers — catch any host Rails uses
+            proxy_redirect ~^https?://[^/]+(/.*)$ INGRESS_PATH$1;
 
             # Rewrite cookie paths
             proxy_cookie_path / INGRESS_PATH/;
