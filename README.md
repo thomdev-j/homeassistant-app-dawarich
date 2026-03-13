@@ -153,6 +153,21 @@ All data persists across addon restarts and updates under `/data/`:
 - Home Assistant ingress provides authenticated access without exposing port 3000
 - If you don't use ingress, port 3000 is available on your local network
 
+## Hardware Requirements
+
+The addon runs PostgreSQL, Redis, Sidekiq, and a Rails app — it needs a reasonable amount of RAM. CPU usage is negligible (< 1% idle).
+
+| Device | RAM | Status |
+|---|---|---|
+| Raspberry Pi 5 (8 GB) | ~800 MB (~10%) | Recommended |
+| Raspberry Pi 5 (4 GB) | ~800 MB (~20%) | Works well |
+| Raspberry Pi 4 (8 GB) | ~800 MB (~10%) | Works well |
+| Raspberry Pi 4 (4 GB) | ~800 MB (~20%) | Works, but leaves less room for other addons |
+| Raspberry Pi 4 (2 GB) | ~800 MB (~40%) | Not recommended — tight with HA + other addons |
+| Intel/AMD (NUC, mini PC) | ~800 MB | No issues |
+
+**Disk space:** The addon image is roughly 1 GB. Allow additional space for the PostgreSQL database, which grows with your location history.
+
 ## FAQ
 
 ### Do I need the Dawarich phone app?
