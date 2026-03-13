@@ -6,7 +6,7 @@
 
 Dawarich lets you track your location history, visualize trips on a map, and keep full control of your data. This addon packages everything it needs (PostgreSQL, Redis, Sidekiq, Nginx) into a single container that runs alongside your other HA addons.
 
-> **Note:** This addon is designed for [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS) and [Home Assistant Supervised](https://www.home-assistant.io/installation/#compare-installation-methods). It requires the HA addon system — Home Assistant Container or Core installations cannot run addons.
+> **Note:** This addon requires [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS), which provides the addon system. Home Assistant Container or Core installations cannot run addons.
 
 ## Features
 
