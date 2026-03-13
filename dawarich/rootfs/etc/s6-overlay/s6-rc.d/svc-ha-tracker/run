@@ -21,12 +21,18 @@ if [ -z "$HA_TRACKED_ENTITIES" ]; then
   exec sleep infinity
 fi
 
-# Wait for API key file (written by svc-dawarich after user creation)
-while [ ! -f /data/dawarich/api_key ] || [ ! -s /data/dawarich/api_key ]; do
-  bashio::log.info "HA Tracker: waiting for Dawarich API key..."
+# Wait for per-entity API keys directory (written by svc-dawarich after user creation)
+# Falls back to legacy single api_key file for backward compatibility
+while true; do
+  if [ -d /data/dawarich/api_keys ] && [ "$(ls -A /data/dawarich/api_keys 2>/dev/null)" ]; then
+    break
+  elif [ -f /data/dawarich/api_key ] && [ -s /data/dawarich/api_key ]; then
+    break
+  fi
+  bashio::log.info "HA Tracker: waiting for Dawarich API keys..."
   sleep 10
 done
-DAWARICH_API_KEY=$(cat /data/dawarich/api_key)
+DAWARICH_API_KEY_FALLBACK=$(cat /data/dawarich/api_key 2>/dev/null || echo "")
 
 # Check if SUPERVISOR_TOKEN is available
 if [ -z "$SUPERVISOR_TOKEN" ]; then
@@ -34,7 +40,9 @@ if [ -z "$SUPERVISOR_TOKEN" ]; then
   exec sleep infinity
 fi
 
-bashio::log.info "HA Tracker: polling entities [${HA_TRACKED_ENTITIES}]"
+# Strip :Name suffixes for display and build clean entity list
+HA_CLEAN_ENTITIES=$(echo "$HA_TRACKED_ENTITIES" | sed 's/:[^,]*//g')
+bashio::log.info "HA Tracker: polling entities [${HA_CLEAN_ENTITIES}]"
 bashio::log.info "HA Tracker: interval moving=${HA_POLLING_INTERVAL}s, stationary=${HA_POLLING_INTERVAL_STATIONARY}s"
 
 # Wait for Dawarich to be ready
@@ -53,9 +61,13 @@ while true; do
   is_moving=false
 
   IFS=',' read -ra ENTITIES <<< "$HA_TRACKED_ENTITIES"
-  for entity in "${ENTITIES[@]}"; do
-    entity=$(echo "$entity" | xargs)  # trim whitespace
-    [ -z "$entity" ] && continue
+  for raw_entity in "${ENTITIES[@]}"; do
+    raw_entity=$(echo "$raw_entity" | xargs)  # trim whitespace
+    [ -z "$raw_entity" ] && continue
+
+    # Strip :Name suffix — only entity_id is needed for HA API
+    entity="${raw_entity%%:*}"
+    entity=$(echo "$entity" | xargs)
 
     # Device name from entity ID (e.g. device_tracker.sm_s911b → sm_s911b)
     device_name=$(echo "$entity" | sed 's/device_tracker\.//')
@@ -121,12 +133,20 @@ while true; do
     # Build GeoJSON payload
     payload="{\"locations\":[{\"type\":\"Feature\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[${lon},${lat}]},\"properties\":${props}}]}"
 
+    # Read per-entity API key, fall back to legacy single key
+    ENTITY_API_KEY=""
+    if [ -f "/data/dawarich/api_keys/${entity}" ]; then
+      ENTITY_API_KEY=$(cat "/data/dawarich/api_keys/${entity}")
+    else
+      ENTITY_API_KEY="$DAWARICH_API_KEY_FALLBACK"
+    fi
+
     # Push to Dawarich Overland API (official batch endpoint)
     http_code=$(curl -s -o /dev/null -w "%{http_code}" \
       -X POST \
       -H "Content-Type: application/json" \
       -d "$payload" \
-      "http://localhost:3000/api/v1/overland/batches?api_key=${DAWARICH_API_KEY}")
+      "http://localhost:3000/api/v1/overland/batches?api_key=${ENTITY_API_KEY}")
 
     if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
       bashio::log.info "HA Tracker: pushed ${entity} (${lat}, ${lon})"

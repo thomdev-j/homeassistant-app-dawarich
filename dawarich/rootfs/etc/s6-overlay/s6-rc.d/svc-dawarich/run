@@ -41,6 +41,81 @@ if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
   " 2>&1
 fi
 
+# --- Per-entity API key setup for multi-user device tracking ---
+mkdir -p /data/dawarich/api_keys
+HA_TRACKED_ENTITIES=$(cat /var/run/s6/container_environment/HA_TRACKED_ENTITIES 2>/dev/null || echo "")
+SECRET_KEY_BASE=$(cat /var/run/s6/container_environment/SECRET_KEY_BASE 2>/dev/null || echo "")
+
+if [ -n "$HA_TRACKED_ENTITIES" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
+  # Build list of users to create and entity→key mappings
+  declare -A USER_ENTITIES  # name → space-separated entity_ids
+  ADMIN_ENTITIES=""          # entity_ids that use the admin user
+
+  IFS=',' read -ra ENTITY_LIST <<< "$HA_TRACKED_ENTITIES"
+  for entry in "${ENTITY_LIST[@]}"; do
+    entry=$(echo "$entry" | xargs)  # trim whitespace
+    [ -z "$entry" ] && continue
+
+    if echo "$entry" | grep -q ':'; then
+      entity_id="${entry%%:*}"
+      raw_name="${entry#*:}"
+      raw_name=$(echo "$raw_name" | xargs)  # trim
+      # Sanitize name: lowercase, only a-z0-9 and hyphens
+      clean_name=$(echo "$raw_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g')
+      if [ -z "$clean_name" ]; then
+        # Empty name after sanitization → use admin
+        ADMIN_ENTITIES="${ADMIN_ENTITIES} ${entity_id}"
+      else
+        USER_ENTITIES["$clean_name"]="${USER_ENTITIES[$clean_name]:-} ${entity_id}"
+      fi
+    else
+      ADMIN_ENTITIES="${ADMIN_ENTITIES} ${entry}"
+    fi
+  done
+
+  # Assign admin API key to entities with no name suffix
+  ADMIN_API_KEY=$(cat /data/dawarich/api_key 2>/dev/null || echo "")
+  for entity_id in $ADMIN_ENTITIES; do
+    entity_id=$(echo "$entity_id" | xargs)
+    [ -z "$entity_id" ] && continue
+    echo -n "$ADMIN_API_KEY" > "/data/dawarich/api_keys/${entity_id}"
+    echo "HA Multi-User: ${entity_id} → admin user"
+  done
+
+  # Build Ruby script for creating named users (single rails runner call)
+  if [ ${#USER_ENTITIES[@]} -gt 0 ]; then
+    RUBY_SCRIPT="secret = '${SECRET_KEY_BASE}'\n"
+    RUBY_SCRIPT+="require 'digest'\n"
+
+    for name in "${!USER_ENTITIES[@]}"; do
+      email="${name}@dawarich.local"
+      # Deterministic password: sha256(secret + name) truncated to 24 chars
+      password=$(echo -n "${SECRET_KEY_BASE}${name}" | sha256sum | cut -c1-24)
+      entities="${USER_ENTITIES[$name]}"
+
+      RUBY_SCRIPT+="begin\n"
+      RUBY_SCRIPT+="  user = User.find_or_create_by!(email: '${email}') do |u|\n"
+      RUBY_SCRIPT+="    u.password = '${password}'\n"
+      RUBY_SCRIPT+="    u.password_confirmation = '${password}'\n"
+      RUBY_SCRIPT+="    puts 'Created user: ${email}'\n"
+      RUBY_SCRIPT+="  end\n"
+      for entity_id in $entities; do
+        entity_id=$(echo "$entity_id" | xargs)
+        [ -z "$entity_id" ] && continue
+        RUBY_SCRIPT+="  File.write('/data/dawarich/api_keys/${entity_id}', user.api_key)\n"
+        RUBY_SCRIPT+="  puts 'API key for ${entity_id} → ${email}'\n"
+      done
+      RUBY_SCRIPT+="rescue => e\n"
+      RUBY_SCRIPT+="  puts \"Error creating user ${email}: #{e.message}\"\n"
+      RUBY_SCRIPT+="end\n"
+    done
+
+    echo -e "$RUBY_SCRIPT" | bundle exec rails runner - 2>&1
+  fi
+
+  echo "HA Multi-User: API key setup complete ($(ls /data/dawarich/api_keys/ | wc -l) entities)"
+fi
+
 # Precompile assets if needed
 if [ ! -f /data/dawarich/.assets_precompiled ] || [ "$DAWARICH_VERSION_CHANGED" = "true" ]; then
   bundle exec rails assets:precompile 2>&1
