@@ -164,7 +164,7 @@ The addon runs PostgreSQL, Redis, Sidekiq, and a Rails app — it needs a reason
 | Raspberry Pi 4 (8 GB) | ~800 MB (~10%) | Works well |
 | Raspberry Pi 4 (4 GB) | ~800 MB (~20%) | Works, but leaves less room for other addons |
 | Raspberry Pi 4 (2 GB) | ~800 MB (~40%) | Not recommended — tight with HA + other addons |
-| Intel/AMD (NUC, mini PC) | ~800 MB | No issues |
+| Home Assistant Green (4 GB) | ~800 MB (~20%) | Works well |
 
 **Disk space:** The addon image is roughly 1 GB. Allow additional space for the PostgreSQL database, which grows with your location history.
 
