@@ -1,0 +1,39 @@
+name: Dawarich
+version: "1.3.3-1"
+slug: dawarich
+description: Self-hosted location tracking — Google Timeline alternative
+url: https://github.com/thomdev-j/homeassistant-addon-dawarich
+arch:
+  - aarch64
+  - amd64
+init: false
+startup: application
+ports:
+  3000/tcp: 3000
+ports_description:
+  3000/tcp: Dawarich Web UI
+map:
+  - type: share
+    read_only: false
+  - type: backup
+    read_only: false
+tmpfs: true
+timeout: 300
+backup_pre: /usr/share/dawarich/backup_pre.sh
+backup_post: /usr/share/dawarich/backup_post.sh
+backup_exclude:
+  - postgres/**
+options:
+  database_password: "dawarich"
+  secret_key_base: ""
+  time_zone: "Europe/Vienna"
+  application_hosts: "homeassistant.local,localhost"
+  background_processing_concurrency: 5
+schema:
+  database_password: str
+  secret_key_base: str
+  time_zone: str
+  application_hosts: str
+  background_processing_concurrency: "int(1,20)"
+  photon_api_host: str?
+  geoapify_api_key: str?

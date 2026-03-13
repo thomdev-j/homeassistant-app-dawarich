@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bash
+# Gracefully stop PostgreSQL on container shutdown
+if [ -f /data/postgres/postmaster.pid ]; then
+  su - postgres -c "pg_ctl stop -D /data/postgres -m fast"
+fi

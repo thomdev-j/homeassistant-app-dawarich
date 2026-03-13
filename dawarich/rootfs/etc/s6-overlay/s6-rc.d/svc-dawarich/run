@@ -1,0 +1,33 @@
+#!/usr/bin/with-contenv bash
+
+# Wait for PostgreSQL to be ready
+until pg_isready -h localhost -p 5432 -q; do
+  sleep 1
+done
+
+# Create database user and database if they don't exist
+DB_USER=$(cat /var/run/s6/container_environment/DATABASE_USERNAME)
+DB_NAME=$(cat /var/run/s6/container_environment/DATABASE_NAME)
+DB_PASS=$(cat /var/run/s6/container_environment/DATABASE_PASSWORD)
+
+su - postgres -c "psql -tc \"SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'\" | grep -q 1 || psql -c \"CREATE ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASS}' CREATEDB;\""
+su - postgres -c "psql -tc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'\" | grep -q 1 || psql -c \"CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};\""
+su - postgres -c "psql -d ${DB_NAME} -c 'CREATE EXTENSION IF NOT EXISTS postgis;'"
+
+# Symlink storage and public directories to persistent data
+rm -rf /app/public/uploads
+ln -sf /data/dawarich/storage /app/storage
+ln -sf /data/dawarich/public /app/public/uploads
+
+cd /app
+
+# Run database migrations
+bundle exec rails db:migrate 2>&1
+
+# Precompile assets if needed
+if [ ! -f /data/dawarich/.assets_precompiled ] || [ "$DAWARICH_VERSION_CHANGED" = "true" ]; then
+  bundle exec rails assets:precompile 2>&1
+  touch /data/dawarich/.assets_precompiled
+fi
+
+exec bundle exec rails server -b 0.0.0.0 -p 3000

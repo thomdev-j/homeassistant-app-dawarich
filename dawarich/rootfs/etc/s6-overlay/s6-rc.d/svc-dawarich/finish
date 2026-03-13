@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bash
+# If the Rails server exits unexpectedly, log it
+if [ "$1" -ne 0 ] && [ "$1" -ne 256 ]; then
+  echo "Dawarich web server exited with code $1, restarting..."
+fi

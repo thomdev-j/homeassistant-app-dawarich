@@ -1,0 +1,14 @@
+#!/usr/bin/with-contenv bash
+
+# Wait for PostgreSQL to be ready
+until pg_isready -h localhost -p 5432 -q; do
+  sleep 1
+done
+
+# Wait briefly for database to be created by svc-dawarich
+sleep 5
+
+cd /app
+
+CONCURRENCY=$(cat /var/run/s6/container_environment/BACKGROUND_PROCESSING_CONCURRENCY)
+exec bundle exec sidekiq -c "${CONCURRENCY:-5}"
