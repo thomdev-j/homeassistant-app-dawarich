@@ -23,6 +23,10 @@ http {
             proxy_pass http://127.0.0.1:3000;
 
             proxy_http_version 1.1;
+
+            # Force Rails to use localhost for URL generation (not HA's host)
+            proxy_set_header Host "localhost";
+            proxy_set_header X-Forwarded-Host "";
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
@@ -34,8 +38,11 @@ http {
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
 
-            # Rewrite redirect Location headers — catch any host Rails uses
-            proxy_redirect ~^https?://[^/]+(/.*)$ INGRESS_PATH$1;
+            # Rewrite redirect Location headers
+            proxy_redirect http://localhost/ INGRESS_PATH/;
+            proxy_redirect http://localhost:3000/ INGRESS_PATH/;
+            proxy_redirect http://127.0.0.1:3000/ INGRESS_PATH/;
+            proxy_redirect / INGRESS_PATH/;
 
             # Rewrite cookie paths
             proxy_cookie_path / INGRESS_PATH/;
