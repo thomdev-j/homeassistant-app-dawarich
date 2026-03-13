@@ -1,0 +1,144 @@
+#!/usr/bin/with-contenv bash
+
+# HA Location Tracker → Dawarich bridge
+# Polls Home Assistant device_tracker entities and pushes location data
+# to the local Dawarich instance via the Overland API (GeoJSON format).
+# Features: deduplication (skip unchanged locations), adaptive polling
+# (slower when stationary, faster when moving).
+
+# Source bashio for logging, then disable set -e to prevent crash on errors
+source /usr/lib/bashio/bashio.sh || true
+set +e
+
+HA_TRACKED_ENTITIES=$(cat /var/run/s6/container_environment/HA_TRACKED_ENTITIES 2>/dev/null)
+HA_POLLING_INTERVAL=$(cat /var/run/s6/container_environment/HA_POLLING_INTERVAL 2>/dev/null)
+HA_POLLING_INTERVAL_STATIONARY=$(cat /var/run/s6/container_environment/HA_POLLING_INTERVAL_STATIONARY 2>/dev/null)
+: "${HA_POLLING_INTERVAL:=30}"
+: "${HA_POLLING_INTERVAL_STATIONARY:=300}"
+
+if [ -z "$HA_TRACKED_ENTITIES" ]; then
+  bashio::log.info "HA Tracker: not configured (set ha_tracked_entities in add-on config). Sleeping."
+  exec sleep infinity
+fi
+
+# Wait for API key file (written by svc-dawarich after user creation)
+while [ ! -f /data/dawarich/api_key ] || [ ! -s /data/dawarich/api_key ]; do
+  bashio::log.info "HA Tracker: waiting for Dawarich API key..."
+  sleep 10
+done
+DAWARICH_API_KEY=$(cat /data/dawarich/api_key)
+
+# Check if SUPERVISOR_TOKEN is available
+if [ -z "$SUPERVISOR_TOKEN" ]; then
+  bashio::log.error "HA Tracker: SUPERVISOR_TOKEN is not set! Cannot access HA API."
+  exec sleep infinity
+fi
+
+bashio::log.info "HA Tracker: polling entities [${HA_TRACKED_ENTITIES}]"
+bashio::log.info "HA Tracker: interval moving=${HA_POLLING_INTERVAL}s, stationary=${HA_POLLING_INTERVAL_STATIONARY}s"
+
+# Wait for Dawarich to be ready
+until curl -sf http://localhost:3000 -o /dev/null 2>/dev/null; do
+  bashio::log.info "HA Tracker: waiting for Dawarich to be ready..."
+  sleep 10
+done
+
+bashio::log.info "HA Tracker: Dawarich is ready, starting location polling"
+
+# Track last known position per entity for dedup
+declare -A LAST_LAT
+declare -A LAST_LON
+
+while true; do
+  is_moving=false
+
+  IFS=',' read -ra ENTITIES <<< "$HA_TRACKED_ENTITIES"
+  for entity in "${ENTITIES[@]}"; do
+    entity=$(echo "$entity" | xargs)  # trim whitespace
+    [ -z "$entity" ] && continue
+
+    # Device name from entity ID (e.g. device_tracker.sm_s911b → sm_s911b)
+    device_name=$(echo "$entity" | sed 's/device_tracker\.//')
+
+    # Fetch entity state from HA Supervisor API
+    response=$(curl -s \
+      -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+      "http://supervisor/core/api/states/${entity}" 2>/dev/null)
+
+    if [ -z "$response" ]; then
+      bashio::log.warning "HA Tracker: empty response for ${entity}"
+      continue
+    fi
+
+    # Validate JSON before parsing
+    if ! echo "$response" | jq -e '.' > /dev/null 2>&1; then
+      bashio::log.warning "HA Tracker: invalid JSON response for ${entity}: ${response:0:200}"
+      continue
+    fi
+
+    # Extract location data
+    lat=$(echo "$response" | jq -r '.attributes.latitude // empty')
+    lon=$(echo "$response" | jq -r '.attributes.longitude // empty')
+
+    if [ -z "$lat" ] || [ -z "$lon" ]; then
+      bashio::log.debug "HA Tracker: no GPS data for ${entity}, skipping"
+      continue
+    fi
+
+    # Dedup: skip if location hasn't changed
+    prev_lat="${LAST_LAT[$entity]:-}"
+    prev_lon="${LAST_LON[$entity]:-}"
+    if [ "$lat" = "$prev_lat" ] && [ "$lon" = "$prev_lon" ]; then
+      bashio::log.debug "HA Tracker: ${entity} unchanged (${lat}, ${lon}), skipping"
+      continue
+    fi
+
+    # Location changed — mark as moving
+    if [ -n "$prev_lat" ] && [ -n "$prev_lon" ]; then
+      is_moving=true
+    fi
+
+    # Update last known position
+    LAST_LAT[$entity]="$lat"
+    LAST_LON[$entity]="$lon"
+
+    acc=$(echo "$response" | jq -r '.attributes.gps_accuracy // .attributes.location_accuracy // empty')
+    batt=$(echo "$response" | jq -r '.attributes.battery_level // empty')
+    alt=$(echo "$response" | jq -r '.attributes.altitude // empty')
+    speed=$(echo "$response" | jq -r '.attributes.speed // .attributes.velocity // empty')
+    vacc=$(echo "$response" | jq -r '.attributes.vertical_accuracy // empty')
+    tst=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # Build properties object, conditionally adding optional fields
+    props="{\"timestamp\":\"${tst}\",\"device_id\":\"${device_name}\""
+    [ -n "$acc" ] && props="${props},\"horizontal_accuracy\":${acc}"
+    [ -n "$alt" ] && props="${props},\"altitude\":${alt}"
+    [ -n "$speed" ] && props="${props},\"speed\":${speed}"
+    [ -n "$batt" ] && props="${props},\"battery_level\":${batt},\"battery_state\":\"unknown\""
+    [ -n "$vacc" ] && props="${props},\"vertical_accuracy\":${vacc}"
+    props="${props}}"
+
+    # Build GeoJSON payload
+    payload="{\"locations\":[{\"type\":\"Feature\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[${lon},${lat}]},\"properties\":${props}}]}"
+
+    # Push to Dawarich Overland API (official batch endpoint)
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+      -X POST \
+      -H "Content-Type: application/json" \
+      -d "$payload" \
+      "http://localhost:3000/api/v1/overland/batches?api_key=${DAWARICH_API_KEY}")
+
+    if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+      bashio::log.info "HA Tracker: pushed ${entity} (${lat}, ${lon})"
+    else
+      bashio::log.warning "HA Tracker: failed to push ${entity}, HTTP ${http_code}"
+    fi
+  done
+
+  # Adaptive polling: use shorter interval when moving, longer when stationary
+  if [ "$is_moving" = true ]; then
+    sleep "$HA_POLLING_INTERVAL"
+  else
+    sleep "$HA_POLLING_INTERVAL_STATIONARY"
+  fi
+done
