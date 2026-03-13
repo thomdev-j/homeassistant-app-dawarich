@@ -205,6 +205,12 @@ Stop the addon, delete the `/data/` directory contents via SSH or the file edito
 
 `amd64` (Intel/AMD) and `aarch64` (Raspberry Pi 4/5, Apple Silicon via HA OS).
 
+## License
+
+This addon is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+
+This addon packages and distributes [Dawarich](https://github.com/Freika/dawarich), copyright [Freika](https://github.com/Freika), also licensed under AGPL-3.0.
+
 ## Links
 
 - [Dawarich](https://github.com/Freika/dawarich) — upstream project
