@@ -10,6 +10,7 @@ This addon bundles [Dawarich](https://github.com/Freika/dawarich) with all requi
 - **Redis 7.4** — cache and job queue
 - **Dawarich** — Rails web application
 - **Sidekiq** — background job processor
+- **Nginx** — ingress reverse proxy
 
 ## Installation
 
@@ -17,26 +18,65 @@ This addon bundles [Dawarich](https://github.com/Freika/dawarich) with all requi
 2. Install the Dawarich addon
 3. (Optional) Adjust configuration options
 4. Start the addon
-5. Open the web UI at `http://<your-ha-ip>:3000`
-6. Create your first account
+5. Open the web UI via the sidebar panel or at `http://<your-ha-ip>:3000`
+6. Log in with the admin credentials from your addon config
 
 ## Configuration
 
 | Option | Default | Description |
 |---|---|---|
+| `admin_email` | `admin@dawarich.local` | Admin user email for Dawarich login. |
+| `admin_password` | `changeme` | Admin user password. **Change this!** |
 | `database_password` | `dawarich` | PostgreSQL password. Change from default for security. |
 | `secret_key_base` | _(auto-generated)_ | Rails secret key. Leave empty for auto-generation on first run. |
-| `time_zone` | `Europe/Vienna` | Timezone for the application (e.g., `America/New_York`). |
+| `time_zone` | `Etc/UTC` | Timezone for the application (e.g., `America/New_York`, `Europe/Berlin`). |
 | `application_hosts` | `homeassistant.local,localhost` | Comma-separated list of hostnames the app responds to. Add your HA hostname/IP. |
 | `background_processing_concurrency` | `5` | Number of Sidekiq worker threads (1-20). Lower for constrained devices. |
 | `photon_api_host` | _(optional)_ | Custom Photon geocoding API host URL. |
 | `geoapify_api_key` | _(optional)_ | Geoapify API key for reverse geocoding. |
+
+### HA Device Tracking
+
+The addon can automatically poll Home Assistant device tracker entities and push their location data to Dawarich.
+
+| Option | Default | Description |
+|---|---|---|
+| `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to poll. |
+| `ha_polling_interval` | `30` | Polling interval in seconds when a device is moving (5-3600). |
+| `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary (30-3600). |
+
+**Basic usage** — track a single device under the admin user:
+```
+ha_tracked_entities: "device_tracker.my_phone"
+```
+
+**Multi-user** — create separate Dawarich users per person by adding a `:Name` suffix:
+```
+ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.partner_phone:Bob"
+```
+
+This creates `alice@dawarich.local` and `bob@dawarich.local` with default password `password`. Each device's location data is sent to its own user. Users can change their password after first login via the Dawarich settings page.
+
+Entities without a `:Name` suffix use the admin user. You can mix both styles:
+```
+ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.tablet"
+```
+
+#### Family Map (multi-user)
+
+After creating multiple users, you can set up Dawarich's built-in Family feature to see everyone on a shared map with different colors:
+
+1. Log into Dawarich as admin
+2. Go to **Family** and create a group
+3. Invite the other user(s)
+4. Each user enables location sharing
 
 ### Important Notes
 
 - **First start** takes several minutes while PostgreSQL initializes and Rails runs migrations
 - **`application_hosts`** must include the hostname/IP you use to access the UI, or Rails will reject requests
 - **`secret_key_base`** is auto-generated and stored in `/data/dawarich/secret_key_base` — do not change it after initial setup or existing sessions will be invalidated
+- **Admin user** is created on first start with the configured email/password. The password is only set on creation — changing it in the addon config won't update an existing user. Use the Dawarich UI to change passwords.
 
 ## Data Persistence
 
@@ -46,6 +86,7 @@ All data is stored under `/data/` and survives addon restarts and updates:
 - `/data/redis/` — Redis persistence files
 - `/data/dawarich/storage/` — User uploads and exports
 - `/data/dawarich/secret_key_base` — Auto-generated secret key
+- `/data/dawarich/api_keys/` — Per-entity API keys for HA tracking
 
 ## Backups
 
@@ -62,6 +103,7 @@ To restore from backup, the addon will automatically detect and restore the SQL 
 - PostgreSQL binds to `localhost` only — port 5432 is **not** exposed outside the container
 - Redis binds to `localhost` only — port 6379 is **not** exposed outside the container
 - Only port 3000 (web UI) is exposed
+- The addon supports Home Assistant ingress for secure access without exposing port 3000
 
 ## Troubleshooting
 
@@ -73,6 +115,12 @@ To restore from backup, the addon will automatically detect and restore the SQL 
 ### Can't access web UI
 - Verify your hostname/IP is in `application_hosts`
 - Check that port 3000 is not blocked by your network
+- Try using the ingress panel in the HA sidebar instead
+
+### HA Tracker not sending data
+- Check addon logs for "HA Tracker:" messages
+- Verify entity IDs exist in Home Assistant (Developer Tools → States)
+- Ensure the entities have GPS attributes (latitude/longitude)
 
 ### Data import fails
 - Check Sidekiq is running in the addon logs

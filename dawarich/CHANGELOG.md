@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3-45
+
+- Add multi-user device tracking: use `:Name` suffix in `ha_tracked_entities` to create separate Dawarich users per household member
+- Fix CSRF 422 errors on login/logout via ingress
+- Fix ingress compatibility for forms, redirects, and WebSocket connections
+
 ## 1.3.3-1
 
 - Initial release

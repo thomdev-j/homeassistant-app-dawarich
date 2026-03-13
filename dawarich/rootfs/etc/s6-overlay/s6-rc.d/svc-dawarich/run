@@ -44,7 +44,7 @@ fi
 # --- Per-entity API key setup for multi-user device tracking ---
 mkdir -p /data/dawarich/api_keys
 HA_TRACKED_ENTITIES=$(cat /var/run/s6/container_environment/HA_TRACKED_ENTITIES 2>/dev/null || echo "")
-if [ -n "$HA_TRACKED_ENTITIES" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
+if [ -n "$HA_TRACKED_ENTITIES" ]; then
   # Build list of users to create and entity→key mappings
   declare -A USER_ENTITIES  # name → space-separated entity_ids
   ADMIN_ENTITIES=""          # entity_ids that use the admin user
@@ -71,6 +71,9 @@ if [ -n "$HA_TRACKED_ENTITIES" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWO
     fi
   done
 
+  # Remove stale API key files from previous config
+  rm -f /data/dawarich/api_keys/*
+
   # Assign admin API key to entities with no name suffix
   ADMIN_API_KEY=$(cat /data/dawarich/api_key 2>/dev/null || echo "")
   for entity_id in $ADMIN_ENTITIES; do
@@ -90,13 +93,11 @@ if [ -n "$HA_TRACKED_ENTITIES" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWO
       entities="${USER_ENTITIES[$name]}"
 
       RUBY_SCRIPT+="begin\n"
-      RUBY_SCRIPT+="  user = User.find_or_initialize_by(email: '${email}')\n"
-      RUBY_SCRIPT+="  user.password = '${password}'\n"
-      RUBY_SCRIPT+="  user.password_confirmation = '${password}'\n"
-      RUBY_SCRIPT+="  if user.new_record?\n"
-      RUBY_SCRIPT+="    puts 'Created user: ${email}'\n"
+      RUBY_SCRIPT+="  user = User.find_or_create_by!(email: '${email}') do |u|\n"
+      RUBY_SCRIPT+="    u.password = '${password}'\n"
+      RUBY_SCRIPT+="    u.password_confirmation = '${password}'\n"
+      RUBY_SCRIPT+="    puts 'Created user: ${email} (default password: ${password})'\n"
       RUBY_SCRIPT+="  end\n"
-      RUBY_SCRIPT+="  user.save!\n"
       for entity_id in $entities; do
         entity_id=$(echo "$entity_id" | xargs)
         [ -z "$entity_id" ] && continue
