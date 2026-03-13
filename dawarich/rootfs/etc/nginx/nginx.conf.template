@@ -71,25 +71,11 @@ http {
             sub_filter "url('/" "url('INGRESS_PATH/";
             sub_filter 'url("/' 'url("INGRESS_PATH/';
 
-            # JS string patterns for API and map paths
-            sub_filter '"/api/' '"INGRESS_PATH/api/';
-            sub_filter "'/api/" "'INGRESS_PATH/api/";
-            sub_filter '"/maps' '"INGRESS_PATH/maps';
-            sub_filter "'/maps" "'INGRESS_PATH/maps";
-            sub_filter '`/maps' '`INGRESS_PATH/maps';
-            sub_filter '"/cable' '"INGRESS_PATH/cable';
-            sub_filter "'/cable" "'INGRESS_PATH/cable";
-            sub_filter '"/users/' '"INGRESS_PATH/users/';
-            sub_filter "'/users/" "'INGRESS_PATH/users/";
-            sub_filter '"/rails/' '"INGRESS_PATH/rails/';
-            sub_filter "'/rails/" "'INGRESS_PATH/rails/";
-
-            # JS fetch/XHR patterns
-            sub_filter 'fetch("/' 'fetch("INGRESS_PATH/';
-            sub_filter "fetch('/" "fetch('INGRESS_PATH/";
-
             # Meta refresh redirects
             sub_filter 'content="0;url=/' 'content="0;url=INGRESS_PATH/';
+
+            # Inject JS to patch fetch/XHR so ALL routes work without per-path sub_filters
+            sub_filter '</head>' '<script>(function(){var P="INGRESS_PATH";if(!P)return;var F=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return F.call(this,u,o)};var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return X.apply(this,arguments)}})()</script></head>';
         }
     }
 }
