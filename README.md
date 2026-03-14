@@ -212,4 +212,4 @@ This app builds on top of the [Dawarich](https://github.com/Freika/dawarich) Doc
 - [Report an issue](https://github.com/thomdev-j/homeassistant-addon-dawarich/issues)
 
 [ha-app-badge]: https://img.shields.io/badge/Home%20Assistant-App-blue?logo=homeassistant
-[ha-app-link]: https://github.com/thomdev-j/homeassistant-addon-dawarich
+[ha-app-link]: https://github.com/thomdev-j/homeassistant-app-dawarich
