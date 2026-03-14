@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3-56
+
+- Show friendly loading page instead of raw 502 Bad Gateway while Dawarich starts up
+
 ## 1.3.3-55
 
 - Rename "addon" to "app" throughout docs and metadata to match Home Assistant's updated terminology
