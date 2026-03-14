@@ -2,6 +2,8 @@
 
 [![HA App][ha-app-badge]][ha-app-link]
 
+![Dawarich running inside Home Assistant](images/screenshot.png)
+
 **This app runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
 
 > **Note:** This app requires [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS), which provides the app system. Home Assistant Container or Core installations cannot run apps.
