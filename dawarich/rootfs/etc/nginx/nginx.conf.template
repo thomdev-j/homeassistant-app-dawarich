@@ -16,6 +16,13 @@ http {
         ''      close;
     }
 
+    # Capture the client's original protocol before we override X-Forwarded-Proto.
+    # Falls back to $scheme (http) for local access without a proxy.
+    map $http_x_forwarded_proto $client_scheme {
+        default $http_x_forwarded_proto;
+        ''      $scheme;
+    }
+
     server {
         listen 8099;
 
@@ -45,10 +52,11 @@ http {
             proxy_set_header Connection $connection_upgrade;
 
             # Rewrite redirect Location headers to full absolute URL
+            # $client_scheme preserves the original protocol (http or https)
             # $http_host is the browser's Host (e.g. 192.168.178.32:8123)
-            proxy_redirect http://localhost/ $scheme://$http_hostINGRESS_PATH/;
-            proxy_redirect http://localhost:3000/ $scheme://$http_hostINGRESS_PATH/;
-            proxy_redirect http://127.0.0.1:3000/ $scheme://$http_hostINGRESS_PATH/;
+            proxy_redirect http://localhost/ $client_scheme://$http_hostINGRESS_PATH/;
+            proxy_redirect http://localhost:3000/ $client_scheme://$http_hostINGRESS_PATH/;
+            proxy_redirect http://127.0.0.1:3000/ $client_scheme://$http_hostINGRESS_PATH/;
 
             # Strip Link preload headers (paths aren't rewritable, causes 404s)
             proxy_hide_header Link;
