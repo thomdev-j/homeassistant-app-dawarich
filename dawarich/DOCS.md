@@ -1,10 +1,10 @@
-# Dawarich Home Assistant Addon
+# Dawarich Home Assistant App
 
-**This addon runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
+**This app runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
 
 ## Overview
 
-Everything is bundled into a single addon container:
+Everything is bundled into a single app container:
 
 - **PostgreSQL 17 + PostGIS** — spatial database
 - **Redis 7.4** — cache and job queue
@@ -14,12 +14,12 @@ Everything is bundled into a single addon container:
 
 ## Installation
 
-1. Add this repository to your Home Assistant addon store
-2. Install the Dawarich addon (the image is roughly 1 GB — initial download may take a while)
+1. Add this repository to your Home Assistant app store
+2. Install the Dawarich app (the image is roughly 1 GB — initial download may take a while)
 3. Adjust configuration options (see below)
-4. Start the addon — first boot initializes the database and compiles assets, subsequent starts are fast (under 15 seconds)
+4. Start the app — first boot initializes the database and compiles assets, subsequent starts are fast (under 15 seconds)
 5. Open the web UI via the sidebar panel or at `http://<your-ha-ip>:3000`
-6. Log in with the admin credentials from your addon config
+6. Log in with the admin credentials from your app config
 
 ## Configuration
 
@@ -36,7 +36,7 @@ Everything is bundled into a single addon container:
 
 ### Device Tracking
 
-The addon can automatically poll Home Assistant device tracker entities and push their location data to Dawarich.
+The app can automatically poll Home Assistant device tracker entities and push their location data to Dawarich.
 
 | Option | Default | Description |
 |---|---|---|
@@ -74,11 +74,11 @@ Duplicate locations (same lat/lon) are always skipped — no redundant data is s
 
 - **`application_hosts`** must include the hostname/IP you use to access the UI, or Rails will reject requests (not needed for ingress)
 - **`secret_key_base`** is auto-generated on first start and stored in `/data/dawarich/secret_key_base` — sessions are invalidated if this file is deleted
-- **Admin user** is created on first start with the configured email/password. The password is only set on creation — changing it in the addon config won't update an existing user. Use the Dawarich UI to change passwords.
+- **Admin user** is created on first start with the configured email/password. The password is only set on creation — changing it in the app config won't update an existing user. Use the Dawarich UI to change passwords.
 
 ## Data Persistence
 
-All data is stored under `/data/` and survives addon restarts and updates:
+All data is stored under `/data/` and survives app restarts and updates:
 
 - `/data/postgres/` — PostgreSQL data directory
 - `/data/redis/` — Redis persistence files
@@ -94,19 +94,19 @@ Home Assistant backups are supported:
 - **Post-backup:** The SQL dump is cleaned up to save disk space
 - Raw PostgreSQL files (`postgres/**`) are excluded from the backup — only the SQL dump is included
 
-To restore from backup, the addon will automatically detect and restore the SQL dump on startup if the PostgreSQL data directory is empty.
+To restore from backup, the app will automatically detect and restore the SQL dump on startup if the PostgreSQL data directory is empty.
 
 ## Network Security
 
 - PostgreSQL binds to `localhost` only — port 5432 is **not** exposed outside the container
 - Redis binds to `localhost` only — port 6379 is **not** exposed outside the container
 - Only port 3000 (web UI) is exposed
-- The addon supports Home Assistant ingress for secure access without exposing port 3000
+- The app supports Home Assistant ingress for secure access without exposing port 3000
 
 ## Troubleshooting
 
-### Addon won't start
-- Check the addon logs in Home Assistant for error messages
+### App won't start
+- Check the app logs in Home Assistant for error messages
 - Ensure you have enough disk space (PostgreSQL needs at least 100MB)
 
 ### Can't access web UI
@@ -115,10 +115,10 @@ To restore from backup, the addon will automatically detect and restore the SQL 
 - Try using the ingress panel in the HA sidebar instead
 
 ### HA Tracker not sending data
-- Check addon logs for "HA Tracker:" messages
+- Check app logs for "HA Tracker:" messages
 - Verify entity IDs exist in Home Assistant (Developer Tools → States)
 - Ensure the entities have GPS attributes (latitude/longitude)
 
 ### Data import fails
-- Check Sidekiq is running in the addon logs
+- Check Sidekiq is running in the app logs
 - Large imports may take significant time — check background job status in the Dawarich UI

@@ -1,7 +1,8 @@
 # Changelog
 
-## 1.3.3-54
+## 1.3.3-55
 
+- Rename "addon" to "app" throughout docs and metadata to match Home Assistant's updated terminology
 - Fix logout not fully signing out: clear stale session cookies at root path and flush Turbo page cache on sign-out
 
 ## 1.3.3-53

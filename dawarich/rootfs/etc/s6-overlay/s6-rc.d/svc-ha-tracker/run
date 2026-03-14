@@ -17,7 +17,7 @@ HA_POLLING_INTERVAL_STATIONARY=$(cat /var/run/s6/container_environment/HA_POLLIN
 : "${HA_POLLING_INTERVAL_STATIONARY:=300}"
 
 if [ -z "$HA_TRACKED_ENTITIES" ]; then
-  bashio::log.info "HA Tracker: not configured (set ha_tracked_entities in add-on config). Sleeping."
+  bashio::log.info "HA Tracker: not configured (set ha_tracked_entities in app config). Sleeping."
   exec sleep infinity
 fi
 

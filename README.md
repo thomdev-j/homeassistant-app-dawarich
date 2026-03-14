@@ -1,16 +1,16 @@
-# Dawarich Home Assistant Addon
+# Dawarich Home Assistant App
 
-[![HA Addon][ha-addon-badge]][ha-addon-link]
+[![HA App][ha-app-badge]][ha-app-link]
 
-**This addon runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
+**This app runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
 
-> **Note:** This addon requires [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS), which provides the addon system. Home Assistant Container or Core installations cannot run addons.
+> **Note:** This app requires [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS), which provides the app system. Home Assistant Container or Core installations cannot run apps.
 
 ## Features
 
-- **Zero setup** — PostgreSQL, Redis, and all dependencies bundled in a single addon container
+- **Zero setup** — PostgreSQL, Redis, and all dependencies bundled in a single app container
 - **Automatic HA device tracking** — polls your `device_tracker` entities and pushes GPS data to Dawarich automatically
-- **Multi-device, multi-user** — assign devices to separate Dawarich users per household member via addon config
+- **Multi-device, multi-user** — assign devices to separate Dawarich users per household member via app config
 - **HA Ingress** — access the UI securely through the Home Assistant sidebar, no extra ports needed
 - **Full backups** — integrates with HA's backup system including automatic PostgreSQL dumps
 
@@ -18,19 +18,19 @@
 
 ### 1. Install
 
-Add this repository URL to your Home Assistant addon store:
+Add this repository URL to your Home Assistant app store:
 
 ```
 https://github.com/thomdev-j/homeassistant-addon-dawarich
 ```
 
-**Settings** → **Add-ons** → **Add-on Store** → **⋮** (top right) → **Repositories** → paste the URL → **Add**
+**Settings** → **Apps** → **+ Install App** → **Repositories** → paste the URL → **Add**
 
 Then find **Dawarich** in the store and click **Install**. The image is roughly 1 GB, so the initial download may take a while depending on your internet connection.
 
 ### 2. Configure
 
-In the addon configuration tab, set at minimum:
+In the app configuration tab, set at minimum:
 
 | Option | What to set |
 |---|---|
@@ -48,7 +48,7 @@ Click **Open Web UI** in the sidebar, or navigate to `http://<your-ha-ip>:3000`.
 
 ## Automatic Location Tracking
 
-The addon can poll Home Assistant `device_tracker` entities and automatically send their GPS data to Dawarich. No phone app needed — if Home Assistant already knows your location, Dawarich will too.
+The app can poll Home Assistant `device_tracker` entities and automatically send their GPS data to Dawarich. No phone app needed — if Home Assistant already knows your location, Dawarich will too.
 
 ### Single user
 
@@ -128,7 +128,7 @@ Duplicate locations (same lat/lon as last poll) are always skipped regardless of
 
 ## Data & Backups
 
-All data persists across addon restarts and updates under `/data/`:
+All data persists across app restarts and updates under `/data/`:
 
 | Path | Contents |
 |---|---|
@@ -137,7 +137,7 @@ All data persists across addon restarts and updates under `/data/`:
 | `/data/dawarich/storage/` | User uploads and exports |
 | `/data/dawarich/secret_key_base` | Auto-generated Rails secret (sessions are invalidated if deleted) |
 
-**Backups** work with Home Assistant's built-in backup system. Before a backup, the addon dumps PostgreSQL to SQL so it can be cleanly restored. Raw database files are excluded — only the portable SQL dump is included.
+**Backups** work with Home Assistant's built-in backup system. Before a backup, the app dumps PostgreSQL to SQL so it can be cleanly restored. Raw database files are excluded — only the portable SQL dump is included.
 
 ## Security
 
@@ -148,24 +148,24 @@ All data persists across addon restarts and updates under `/data/`:
 
 ## Hardware Requirements
 
-The addon runs PostgreSQL, Redis, Sidekiq, and a Rails app — it needs a reasonable amount of RAM. CPU usage is negligible (< 1% idle).
+The app runs PostgreSQL, Redis, Sidekiq, and a Rails app — it needs a reasonable amount of RAM. CPU usage is negligible (< 1% idle).
 
 | Device | RAM | Status |
 |---|---|---|
 | Raspberry Pi 5 (8 GB) | ~800 MB (~10%) | Recommended |
 | Raspberry Pi 5 (4 GB) | ~800 MB (~20%) | Works well |
 | Raspberry Pi 4 (8 GB) | ~800 MB (~10%) | Works well |
-| Raspberry Pi 4 (4 GB) | ~800 MB (~20%) | Works, but leaves less room for other addons |
-| Raspberry Pi 4 (2 GB) | ~800 MB (~40%) | Not recommended — tight with HA + other addons |
+| Raspberry Pi 4 (4 GB) | ~800 MB (~20%) | Works, but leaves less room for other apps |
+| Raspberry Pi 4 (2 GB) | ~800 MB (~40%) | Not recommended — tight with HA + other apps |
 | Home Assistant Green (4 GB) | ~800 MB (~20%) | Works well |
 
-**Disk space:** The addon image is roughly 1 GB. Allow additional space for the PostgreSQL database, which grows with your location history.
+**Disk space:** The app image is roughly 1 GB. Allow additional space for the PostgreSQL database, which grows with your location history.
 
 ## FAQ
 
 ### Do I need the Dawarich phone app?
 
-No. The addon polls your HA device trackers directly. You can optionally use the Dawarich phone app or OwnTracks alongside it — see the [Dawarich docs](https://dawarich.app/) for details.
+No. The app polls your HA device trackers directly. You can optionally use the Dawarich phone app or OwnTracks alongside it — see the [Dawarich docs](https://dawarich.app/) for details.
 
 ### Can I import existing location history?
 
@@ -177,7 +177,7 @@ Add your Home Assistant's hostname or IP to `application_hosts`. For example: `h
 
 ### Can I change the admin password after first setup?
 
-Yes, log into Dawarich and change it through the UI (click your avatar → account settings). Changing `admin_password` in the addon config only affects initial user creation — it won't reset an existing password.
+Yes, log into Dawarich and change it through the UI (click your avatar → account settings). Changing `admin_password` in the app config only affects initial user creation — it won't reset an existing password.
 
 ### How do I give another user admin access?
 
@@ -185,15 +185,15 @@ Log in as admin, go to **Settings → Users**, and promote the user from there.
 
 ### The map is empty after setup
 
-Location data needs time to accumulate. If using HA tracking, check the addon logs for `HA Tracker: pushed` messages to confirm data is flowing. Verify your device tracker entities have GPS coordinates in **Developer Tools → States**.
+Location data needs time to accumulate. If using HA tracking, check the app logs for `HA Tracker: pushed` messages to confirm data is flowing. Verify your device tracker entities have GPS coordinates in **Developer Tools → States**.
 
 ### How do I find my device tracker entity IDs?
 
-In Home Assistant, go to **Developer Tools → States** and filter for `device_tracker.`. Entities with `latitude` and `longitude` attributes will work with this addon.
+In Home Assistant, go to **Developer Tools → States** and filter for `device_tracker.`. Entities with `latitude` and `longitude` attributes will work with this app.
 
 ### How do I reset everything and start fresh?
 
-Stop the addon, delete the `/data/` directory contents via SSH or the file editor addon, and restart. The addon will reinitialize from scratch.
+Stop the app, delete the `/data/` directory contents via SSH or the file editor app, and restart. The app will reinitialize from scratch.
 
 ### What architectures are supported?
 
@@ -201,9 +201,9 @@ Stop the addon, delete the `/data/` directory contents via SSH or the file edito
 
 ## License
 
-This addon is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+This app is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
-This addon builds on top of the [Dawarich](https://github.com/Freika/dawarich) Docker image (`freikin/dawarich`), copyright [Freika](https://github.com/Freika), also licensed under AGPL-3.0.
+This app builds on top of the [Dawarich](https://github.com/Freika/dawarich) Docker image (`freikin/dawarich`), copyright [Freika](https://github.com/Freika), also licensed under AGPL-3.0.
 
 ## Links
 
@@ -211,5 +211,5 @@ This addon builds on top of the [Dawarich](https://github.com/Freika/dawarich) D
 - [Dawarich Documentation](https://dawarich.app/) — full feature documentation
 - [Report an issue](https://github.com/thomdev-j/homeassistant-addon-dawarich/issues)
 
-[ha-addon-badge]: https://img.shields.io/badge/Home%20Assistant-Addon-blue?logo=homeassistant
-[ha-addon-link]: https://github.com/thomdev-j/homeassistant-addon-dawarich
+[ha-app-badge]: https://img.shields.io/badge/Home%20Assistant-App-blue?logo=homeassistant
+[ha-app-link]: https://github.com/thomdev-j/homeassistant-addon-dawarich
