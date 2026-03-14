@@ -23,6 +23,14 @@ http {
         ''      $scheme;
     }
 
+    # On sign-out, expire _dawarich_session at root path "/" to clear stale
+    # duplicates that HA ingress can leave behind (Devise only clears its own
+    # path, so the ghost cookie keeps the user logged in).
+    map $request_uri $logout_clear_cookie {
+        "~*sign_out"  "_dawarich_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax";
+        default        "";
+    }
+
     server {
         listen 8099;
 
@@ -64,6 +72,9 @@ http {
             # Rewrite cookie paths
             proxy_cookie_path / INGRESS_PATH/;
 
+            # Clear stale session cookies on logout (empty string = no header added)
+            add_header Set-Cookie $logout_clear_cookie always;
+
             # Rewrite absolute paths in response body
             sub_filter_types text/html text/css application/javascript text/javascript application/json;
             sub_filter_once off;
@@ -99,7 +110,7 @@ http {
             # Inject JS to universally patch all browser APIs that make requests or manipulate URLs.
             # This catches any current and future Dawarich routes without per-path sub_filters.
             # Patches: fetch, XMLHttpRequest, WebSocket, history.pushState/replaceState, MutationObserver.
-            sub_filter '</head>' '<script>(function(){var P="INGRESS_PATH";if(!P)return;var F=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return F.call(this,u,o)};var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return X.apply(this,arguments)};var W=window.WebSocket;window.WebSocket=new Proxy(W,{construct:function(t,a){var u=a[0];if(typeof u==="string"){try{var o=new URL(u);if(!o.pathname.startsWith(P)){o.pathname=P+o.pathname;a=a.slice();a[0]=o.toString()}}catch(e){if(u.startsWith("/")&&!u.startsWith(P)){a=a.slice();a[0]=P+u}}}return Reflect.construct(t,a)}});["pushState","replaceState"].forEach(function(m){var o=history[m];history[m]=function(s,t,u){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return o.call(this,s,t,u)}});function fix(el){["href","src","action"].forEach(function(a){var v=el.getAttribute(a);if(v&&v.startsWith("/")&&!v.startsWith(P))el.setAttribute(a,P+v)})}new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==="childList"){m.addedNodes.forEach(function(n){if(n.nodeType===1){fix(n);n.querySelectorAll("[href],[src],[action]").forEach(fix)}})}else if(m.type==="attributes"){fix(m.target)}})}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:["href","src","action"]})})()</script></head>';
+            sub_filter '</head>' '<script>(function(){var P="INGRESS_PATH";if(!P)return;var F=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return F.call(this,u,o)};var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return X.apply(this,arguments)};var W=window.WebSocket;window.WebSocket=new Proxy(W,{construct:function(t,a){var u=a[0];if(typeof u==="string"){try{var o=new URL(u);if(!o.pathname.startsWith(P)){o.pathname=P+o.pathname;a=a.slice();a[0]=o.toString()}}catch(e){if(u.startsWith("/")&&!u.startsWith(P)){a=a.slice();a[0]=P+u}}}return Reflect.construct(t,a)}});["pushState","replaceState"].forEach(function(m){var o=history[m];history[m]=function(s,t,u){if(typeof u==="string"&&u.startsWith("/")&&!u.startsWith(P))u=P+u;return o.call(this,s,t,u)}});function fix(el){["href","src","action"].forEach(function(a){var v=el.getAttribute(a);if(v&&v.startsWith("/")&&!v.startsWith(P))el.setAttribute(a,P+v)})}new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==="childList"){m.addedNodes.forEach(function(n){if(n.nodeType===1){fix(n);n.querySelectorAll("[href],[src],[action]").forEach(fix)}})}else if(m.type==="attributes"){fix(m.target)}})}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:["href","src","action"]})})();document.addEventListener("turbo:load",function(){if(document.querySelector("form[action*=sign_in]")&&window.Turbo&&Turbo.cache)Turbo.cache.clear()})</script></head>';
         }
     }
 }

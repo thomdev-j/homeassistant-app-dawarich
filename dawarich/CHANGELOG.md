@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3-54
+
+- Fix logout not fully signing out: clear stale session cookies at root path and flush Turbo page cache on sign-out
+
 ## 1.3.3-53
 
 - Add multi-user device tracking: use `:Name` suffix in `ha_tracked_entities` to create separate Dawarich users per household member
