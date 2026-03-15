@@ -10,12 +10,3 @@
 Rails.application.config.session_store :cookie_store,
   key: '_dawarich_session',
   expire_after: 1.year
-
-# Extend Devise timeouts if Devise is present (safety net in case the
-# upstream app enables the :timeoutable or :rememberable modules).
-Rails.application.config.after_initialize do
-  if defined?(Devise)
-    Devise.timeout_in  = 1.year if Devise.respond_to?(:timeout_in=)
-    Devise.remember_for = 1.year if Devise.respond_to?(:remember_for=)
-  end
-end

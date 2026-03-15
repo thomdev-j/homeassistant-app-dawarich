@@ -16,6 +16,12 @@ HA_POLLING_INTERVAL_STATIONARY=$(cat /var/run/s6/container_environment/HA_POLLIN
 : "${HA_POLLING_INTERVAL:=30}"
 : "${HA_POLLING_INTERVAL_STATIONARY:=300}"
 
+# Number of consecutive "unchanged" polls before switching to stationary mode.
+# HA only updates device_tracker when the phone pushes a new position (every
+# 1-5 min), so a single unchanged poll does NOT mean stationary — it often
+# just means HA hasn't received a fresh update yet.
+STABLE_THRESHOLD=5
+
 if [ -z "$HA_TRACKED_ENTITIES" ]; then
   bashio::log.info "HA Tracker: not configured (set ha_tracked_entities in app config). Sleeping."
   exec sleep infinity
@@ -56,6 +62,7 @@ bashio::log.info "HA Tracker: Dawarich is ready, starting location polling"
 # Track last known position per entity for dedup
 declare -A LAST_LAT
 declare -A LAST_LON
+declare -A STABLE_CNT
 
 while true; do
   is_moving=false
@@ -101,14 +108,20 @@ while true; do
     prev_lat="${LAST_LAT[$entity]:-}"
     prev_lon="${LAST_LON[$entity]:-}"
     if [ "$lat" = "$prev_lat" ] && [ "$lon" = "$prev_lon" ]; then
-      bashio::log.debug "HA Tracker: ${entity} unchanged (${lat}, ${lon}), skipping"
+      STABLE_CNT[$entity]=$(( ${STABLE_CNT[$entity]:-0} + 1 ))
+      # Keep polling fast until position has been stable for several
+      # consecutive polls — HA often reports stale coordinates between
+      # phone updates, so one "unchanged" does not mean stationary.
+      if [ "${STABLE_CNT[$entity]}" -lt "$STABLE_THRESHOLD" ]; then
+        is_moving=true
+      fi
+      bashio::log.debug "HA Tracker: ${entity} unchanged (stable=${STABLE_CNT[$entity]}/${STABLE_THRESHOLD})"
       continue
     fi
 
-    # Location changed — mark as moving
-    if [ -n "$prev_lat" ] && [ -n "$prev_lon" ]; then
-      is_moving=true
-    fi
+    # Position changed — reset stable count and mark as moving
+    STABLE_CNT[$entity]=0
+    is_moving=true
 
     # Update last known position
     LAST_LAT[$entity]="$lat"
