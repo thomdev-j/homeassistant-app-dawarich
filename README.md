@@ -98,7 +98,7 @@ The tracker subscribes to Home Assistant's Server-Sent Events (SSE) stream for r
 
 Check the app logs for `[SSE] connected — receiving real-time state changes` to confirm it's working.
 
-Duplicate locations (same lat/lon) are always skipped — no redundant data is stored.
+Duplicate locations (same lat/lon) are always skipped. Additionally, positions closer than `ha_min_distance` meters (default: 10m) to the last recorded point are filtered out — this prevents GPS drift from generating spurious data points when your phone is stationary.
 
 **Fallback:** If SSE is unavailable (very old HA versions), the tracker automatically falls back to REST polling with adaptive intervals. The `ha_polling_interval` and `ha_polling_interval_stationary` settings only apply in this fallback mode.
 
@@ -122,6 +122,7 @@ Duplicate locations (same lat/lon) are always skipped — no redundant data is s
 | `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable automatic tracking. Optionally add a `:Name` suffix to assign a device to a specific user (see [Multi-user](#multiple-household-members) above). Find your entity IDs in HA under **Developer Tools → States**. |
 | `ha_polling_interval` | `30` | Polling interval in seconds when moving — only used in fallback polling mode (5-3600). Not needed when SSE is active. |
 | `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary — only used in fallback polling mode (30-3600). Not needed when SSE is active. |
+| `ha_min_distance` | `10` | Minimum distance in meters a device must move before the new position is recorded (0-1000). Filters GPS drift when stationary — typical drift is 3-15m. Set to `0` to disable and record every position change. |
 
 ## Data & Backups
 

@@ -43,6 +43,7 @@ The app subscribes to Home Assistant's real-time event stream (SSE) and pushes l
 | `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable. |
 | `ha_polling_interval` | `30` | Polling interval in seconds when moving — only used in fallback polling mode (5-3600). |
 | `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary — only used in fallback polling mode (30-3600). |
+| `ha_min_distance` | `10` | Minimum distance in meters before a new position is recorded (0-1000). Filters GPS drift when stationary. Set to `0` to disable. |
 
 **Basic usage** — track a single device under the admin user:
 ```
@@ -67,7 +68,7 @@ By default, the tracker subscribes to Home Assistant's Server-Sent Events stream
 
 If SSE is unavailable (very old HA versions), the tracker automatically falls back to REST polling with adaptive intervals. The logs will show `[POLLING] falling back to REST polling mode`.
 
-Duplicate locations (same lat/lon) are always skipped — no redundant data is stored.
+Duplicate locations (same lat/lon) are always skipped. Positions closer than `ha_min_distance` meters (default: 10m) to the last recorded point are also filtered to prevent GPS drift noise.
 
 ### Important Notes
 

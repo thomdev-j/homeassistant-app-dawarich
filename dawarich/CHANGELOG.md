@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3-61
+
+- Add configurable GPS drift filter (`ha_min_distance`, default 10m) — prevents stationary phones from generating spurious data points due to GPS signal fluctuation
+- Set to `0` in app config to disable and record every position change
+
 ## 1.3.3-60
 
 - Rewrite HA tracker to use real-time SSE event stream instead of polling — location updates are pushed to Dawarich the instant HA receives them, eliminating tracking gaps

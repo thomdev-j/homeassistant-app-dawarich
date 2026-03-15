@@ -65,9 +65,26 @@ until curl -sf http://localhost:3000 -o /dev/null 2>/dev/null; do
 done
 bashio::log.info "HA Tracker: Dawarich is ready"
 
+# Min distance in meters from last accepted point. Filters GPS drift when
+# stationary (typical drift is 3-15m). 10m is the Overland app's default.
+# Configurable via ha_min_distance in add-on config. Set to 0 to disable.
+HA_MIN_DISTANCE=$(cat /var/run/s6/container_environment/HA_MIN_DISTANCE 2>/dev/null)
+: "${HA_MIN_DISTANCE:=10}"
+
 # --- Dedup state (shared by both modes) ---
 declare -A LAST_LAT
 declare -A LAST_LON
+
+# Approximate distance in meters between two lat/lon points (Haversine).
+haversine_m() {
+  awk -v lat1="$1" -v lon1="$2" -v lat2="$3" -v lon2="$4" 'BEGIN {
+    pi = 3.14159265358979
+    dlat = (lat2 - lat1) * pi / 180
+    dlon = (lon2 - lon1) * pi / 180
+    a = sin(dlat/2)^2 + cos(lat1*pi/180) * cos(lat2*pi/180) * sin(dlon/2)^2
+    printf "%.0f", 6371000 * 2 * atan2(sqrt(a), sqrt(1-a))
+  }'
+}
 
 # Push a single location point to Dawarich.
 # Args: entity_id state_json
@@ -80,13 +97,26 @@ push_location() {
   lon=$(echo "$state_json" | jq -r '.attributes.longitude // empty')
   [ -z "$lat" ] || [ -z "$lon" ] && return 1
 
-  # Coordinate dedup — skip if identical to last pushed position.
-  # Important for SSE mode where non-location attribute changes (battery,
-  # connectivity) also fire state_changed events.
+  # Exact coordinate dedup — skip if identical to last pushed position.
+  # Catches non-location state changes (battery, connectivity).
   if [ "$lat" = "${LAST_LAT[$entity]:-}" ] && [ "$lon" = "${LAST_LON[$entity]:-}" ]; then
     bashio::log.debug "HA Tracker: ${entity} coordinates unchanged, skipping"
     return 1
   fi
+
+  # Distance gate — filter GPS drift when stationary.
+  local prev_lat="${LAST_LAT[$entity]:-}"
+  local prev_lon="${LAST_LON[$entity]:-}"
+  if [ -n "$prev_lat" ] && [ -n "$prev_lon" ] && [ "$HA_MIN_DISTANCE" -gt 0 ] 2>/dev/null; then
+    local dist
+    dist=$(haversine_m "$prev_lat" "$prev_lon" "$lat" "$lon")
+    if [ "$dist" -lt "$HA_MIN_DISTANCE" ] 2>/dev/null; then
+      bashio::log.debug "HA Tracker: ${entity} moved ${dist}m < ${HA_MIN_DISTANCE}m, skipping"
+      return 1
+    fi
+  fi
+
+  # Point accepted — update last known position
   LAST_LAT[$entity]="$lat"
   LAST_LON[$entity]="$lon"
 
