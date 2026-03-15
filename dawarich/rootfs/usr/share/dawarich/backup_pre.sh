@@ -4,7 +4,7 @@
 
 export PATH="/usr/lib/postgresql/17/bin:${PATH}"
 
-if pg_isready -h localhost -p 5432 -q; then
+if pg_isready -h localhost -p 5432 -U postgres -q; then
   su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH pg_dumpall" > /data/dawarich/backup.sql
   echo "PostgreSQL backup completed successfully."
 else
