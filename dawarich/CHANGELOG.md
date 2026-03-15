@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3-63
+
+- Fix `FATAL: role "root" does not exist` log warnings during startup
+
 ## 1.3.3-62
 
 - Remove polling fallback — tracker now uses real-time SSE exclusively
