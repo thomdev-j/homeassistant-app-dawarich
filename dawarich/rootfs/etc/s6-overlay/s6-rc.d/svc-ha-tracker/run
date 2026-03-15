@@ -150,10 +150,17 @@ initial_poll() {
 # =====================================================================
 run_sse() {
   bashio::log.info "HA Tracker: connecting to HA SSE stream..."
+  local sse_connected=false
 
   # curl -N disables output buffering so we get lines as they arrive.
   # --connect-timeout ensures we don't hang if the endpoint doesn't exist.
   while IFS= read -r line; do
+    # Log once when we receive the first SSE event (confirms stream works)
+    if [ "$sse_connected" = false ]; then
+      bashio::log.info "HA Tracker: [SSE] connected — receiving real-time state changes"
+      sse_connected=true
+    fi
+
     # SSE format: "data: {json}" lines contain the event payload
     [[ "$line" != data:* ]] && continue
 
@@ -172,6 +179,11 @@ run_sse() {
   done < <(curl -N -s --connect-timeout 10 \
     -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
     "http://supervisor/core/api/stream?restrict=state_changed" 2>/dev/null)
+
+  # If we never received any data, log the likely cause
+  if [ "$sse_connected" = false ]; then
+    bashio::log.warning "HA Tracker: [SSE] connection failed (endpoint may not be available)"
+  fi
 }
 
 # =====================================================================
@@ -241,7 +253,8 @@ while true; do
     # Stream died almost immediately — likely not supported
     sse_failures=$((sse_failures + 1))
     if [ "$sse_failures" -ge 3 ]; then
-      bashio::log.warning "HA Tracker: SSE stream failed ${sse_failures} times, falling back to polling"
+      bashio::log.warning "HA Tracker: [SSE] failed ${sse_failures} times — not supported by this HA version"
+      bashio::log.info "HA Tracker: [POLLING] falling back to REST polling mode"
       run_polling  # runs forever
       break
     fi
