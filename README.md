@@ -96,11 +96,9 @@ ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.tablet"
 
 The tracker subscribes to Home Assistant's Server-Sent Events (SSE) stream for real-time `state_changed` events. When your phone pushes a new GPS position to HA, the tracker receives it instantly and forwards it to Dawarich — no polling delay, no gaps.
 
-Check the app logs for `[SSE] connected — receiving real-time state changes` to confirm it's working.
+Check the app logs for `connected — receiving real-time state changes` to confirm it's working.
 
 Duplicate locations (same lat/lon) are always skipped. Additionally, positions closer than `ha_min_distance` meters (default: 10m) to the last recorded point are filtered out — this prevents GPS drift from generating spurious data points when your phone is stationary.
-
-**Fallback:** If SSE is unavailable (very old HA versions), the tracker automatically falls back to REST polling with adaptive intervals. The `ha_polling_interval` and `ha_polling_interval_stationary` settings only apply in this fallback mode.
 
 ## All Configuration Options
 
@@ -120,8 +118,6 @@ Duplicate locations (same lat/lon) are always skipped. Additionally, positions c
 | Option | Default | Description |
 |---|---|---|
 | `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable automatic tracking. Optionally add a `:Name` suffix to assign a device to a specific user (see [Multi-user](#multiple-household-members) above). Find your entity IDs in HA under **Developer Tools → States**. |
-| `ha_polling_interval` | `30` | Polling interval in seconds when moving — only used in fallback polling mode (5-3600). Not needed when SSE is active. |
-| `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary — only used in fallback polling mode (30-3600). Not needed when SSE is active. |
 | `ha_min_distance` | `10` | Minimum distance in meters a device must move before the new position is recorded (0-1000). Filters GPS drift when stationary — typical drift is 3-15m. Set to `0` to disable and record every position change. |
 
 ## Data & Backups
@@ -163,7 +159,7 @@ The app runs PostgreSQL, Redis, Sidekiq, and a Rails app — it needs a reasonab
 
 ### Do I need the Dawarich phone app?
 
-No. The app polls your HA device trackers directly. You can optionally use the Dawarich phone app or OwnTracks alongside it — see the [Dawarich docs](https://dawarich.app/) for details.
+No. The app subscribes to HA's real-time event stream and tracks your devices automatically. You can optionally use the Dawarich phone app or OwnTracks alongside it — see the [Dawarich docs](https://dawarich.app/) for details.
 
 ### Can I import existing location history?
 

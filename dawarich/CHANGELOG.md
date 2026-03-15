@@ -1,17 +1,16 @@
 # Changelog
 
-## 1.3.3-61
+## 1.3.3-62
 
-- Add configurable GPS drift filter (`ha_min_distance`, default 10m) — prevents stationary phones from generating spurious data points due to GPS signal fluctuation
-- Set to `0` in app config to disable and record every position change
+- Remove polling fallback — tracker now uses real-time SSE exclusively
+- Remove `ha_polling_interval` and `ha_polling_interval_stationary` config options
+- Add configurable GPS drift filter (`ha_min_distance`, default 10m) — prevents stationary phones from generating spurious data points due to GPS signal fluctuation. Set to `0` to disable.
 
 ## 1.3.3-60
 
-- Rewrite HA tracker to use real-time SSE event stream instead of polling — location updates are pushed to Dawarich the instant HA receives them, eliminating tracking gaps
-- Automatic fallback to REST polling if SSE is unavailable (very old HA versions)
+- Rewrite HA tracker to use real-time SSE event stream
 - Persist session cookies for 1 year to prevent unexpected logouts
 - Extend Devise remember-me token to 1 year with sliding expiry
-- Clear logging of active tracking mode: `[SSE] connected` or `[POLLING] falling back`
 
 ## 1.3.3-56
 

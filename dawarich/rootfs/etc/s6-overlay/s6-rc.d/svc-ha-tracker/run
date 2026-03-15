@@ -3,21 +3,13 @@
 # HA Location Tracker → Dawarich bridge
 #
 # Pushes device_tracker location updates to Dawarich via the Overland API.
-# Two modes:
-#   1. SSE (preferred) — subscribes to HA's /api/stream for real-time
-#      state_changed events. Zero latency, zero wasted polls.
-#   2. Polling (fallback) — if SSE is unavailable, polls the REST API
-#      with adaptive intervals (fast when moving, slow when stationary).
+# Subscribes to HA's /api/stream for real-time state_changed events.
 
 # Source bashio for logging, then disable set -e to prevent crash on errors
 source /usr/lib/bashio/bashio.sh || true
 set +e
 
 HA_TRACKED_ENTITIES=$(cat /var/run/s6/container_environment/HA_TRACKED_ENTITIES 2>/dev/null)
-HA_POLLING_INTERVAL=$(cat /var/run/s6/container_environment/HA_POLLING_INTERVAL 2>/dev/null)
-HA_POLLING_INTERVAL_STATIONARY=$(cat /var/run/s6/container_environment/HA_POLLING_INTERVAL_STATIONARY 2>/dev/null)
-: "${HA_POLLING_INTERVAL:=30}"
-: "${HA_POLLING_INTERVAL_STATIONARY:=300}"
 
 if [ -z "$HA_TRACKED_ENTITIES" ]; then
   bashio::log.info "HA Tracker: not configured (set ha_tracked_entities in app config). Sleeping."
@@ -67,11 +59,11 @@ bashio::log.info "HA Tracker: Dawarich is ready"
 
 # Min distance in meters from last accepted point. Filters GPS drift when
 # stationary (typical drift is 3-15m). 10m is the Overland app's default.
-# Configurable via ha_min_distance in add-on config. Set to 0 to disable.
+# Configurable via ha_min_distance in app config. Set to 0 to disable.
 HA_MIN_DISTANCE=$(cat /var/run/s6/container_environment/HA_MIN_DISTANCE 2>/dev/null)
 : "${HA_MIN_DISTANCE:=10}"
 
-# --- Dedup state (shared by both modes) ---
+# --- Dedup state ---
 declare -A LAST_LAT
 declare -A LAST_LON
 
@@ -162,9 +154,9 @@ push_location() {
   fi
 }
 
-# Fetch current state for all tracked entities via REST (used on startup
+# Fetch current state for all tracked entities via REST (one-time on startup
 # before streaming begins, so we don't miss the initial position).
-initial_poll() {
+initial_fetch() {
   for entity in "${!IS_TRACKED[@]}"; do
     local response
     response=$(curl -s -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
@@ -175,19 +167,15 @@ initial_poll() {
   done
 }
 
-# =====================================================================
-#  MODE 1: SSE stream (real-time, preferred)
-# =====================================================================
+# Subscribe to HA's SSE stream for real-time state_changed events.
 run_sse() {
-  bashio::log.info "HA Tracker: connecting to HA SSE stream..."
+  bashio::log.info "HA Tracker: connecting to HA event stream..."
   local sse_connected=false
 
   # curl -N disables output buffering so we get lines as they arrive.
-  # --connect-timeout ensures we don't hang if the endpoint doesn't exist.
   while IFS= read -r line; do
-    # Log once when we receive the first SSE event (confirms stream works)
     if [ "$sse_connected" = false ]; then
-      bashio::log.info "HA Tracker: [SSE] connected — receiving real-time state changes"
+      bashio::log.info "HA Tracker: connected — receiving real-time state changes"
       sse_connected=true
     fi
 
@@ -210,90 +198,19 @@ run_sse() {
     -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
     "http://supervisor/core/api/stream?restrict=state_changed" 2>/dev/null)
 
-  # If we never received any data, log the likely cause
   if [ "$sse_connected" = false ]; then
-    bashio::log.warning "HA Tracker: [SSE] connection failed (endpoint may not be available)"
+    bashio::log.warning "HA Tracker: connection failed"
   fi
 }
 
 # =====================================================================
-#  MODE 2: REST polling (fallback)
-# =====================================================================
-run_polling() {
-  bashio::log.info "HA Tracker: using polling mode (interval moving=${HA_POLLING_INTERVAL}s, stationary=${HA_POLLING_INTERVAL_STATIONARY}s)"
-
-  # Number of consecutive "unchanged" polls before switching to stationary.
-  # HA reports stale coordinates between phone updates, so one "unchanged"
-  # does not mean stationary.
-  local STABLE_THRESHOLD=5
-  declare -A STABLE_CNT
-
-  while true; do
-    local is_moving=false
-
-    for entity in "${!IS_TRACKED[@]}"; do
-      local response
-      response=$(curl -s -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-        "http://supervisor/core/api/states/${entity}" 2>/dev/null)
-      [ -z "$response" ] && continue
-      echo "$response" | jq -e '.' > /dev/null 2>&1 || continue
-
-      local lat lon
-      lat=$(echo "$response" | jq -r '.attributes.latitude // empty')
-      lon=$(echo "$response" | jq -r '.attributes.longitude // empty')
-      [ -z "$lat" ] || [ -z "$lon" ] && continue
-
-      # Check if coordinates changed from last poll
-      if [ "$lat" = "${LAST_LAT[$entity]:-}" ] && [ "$lon" = "${LAST_LON[$entity]:-}" ]; then
-        STABLE_CNT[$entity]=$(( ${STABLE_CNT[$entity]:-0} + 1 ))
-        if [ "${STABLE_CNT[$entity]}" -lt "$STABLE_THRESHOLD" ]; then
-          is_moving=true
-        fi
-        continue
-      fi
-
-      # Position changed
-      STABLE_CNT[$entity]=0
-      is_moving=true
-      push_location "$entity" "$response"
-    done
-
-    if [ "$is_moving" = true ]; then
-      sleep "$HA_POLLING_INTERVAL"
-    else
-      sleep "$HA_POLLING_INTERVAL_STATIONARY"
-    fi
-  done
-}
-
-# =====================================================================
-#  Main: try SSE, fall back to polling
+#  Main: fetch initial positions, then stream real-time updates
 # =====================================================================
 
-# Capture initial positions before streaming
-initial_poll
+initial_fetch
 
-sse_failures=0
 while true; do
-  start_ts=$(date +%s)
   run_sse
-  elapsed=$(( $(date +%s) - start_ts ))
-
-  if [ "$elapsed" -lt 10 ]; then
-    # Stream died almost immediately — likely not supported
-    sse_failures=$((sse_failures + 1))
-    if [ "$sse_failures" -ge 3 ]; then
-      bashio::log.warning "HA Tracker: [SSE] failed ${sse_failures} times — not supported by this HA version"
-      bashio::log.info "HA Tracker: [POLLING] falling back to REST polling mode"
-      run_polling  # runs forever
-      break
-    fi
-    bashio::log.warning "HA Tracker: SSE stream failed after ${elapsed}s (attempt ${sse_failures}/3), retrying in 10s..."
-    sleep 10
-  else
-    # Stream was alive for a while — probably a transient disconnect
-    sse_failures=0
-    bashio::log.info "HA Tracker: SSE stream disconnected after ${elapsed}s, reconnecting in 5s..."
-    sleep 5
-  fi
+  bashio::log.info "HA Tracker: stream disconnected, reconnecting in 5s..."
+  sleep 5
 done

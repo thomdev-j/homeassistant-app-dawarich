@@ -36,8 +36,6 @@ printf '%s' "$(bashio::config 'admin_password')" > /var/run/s6/container_environ
 
 # HA location tracker settings
 printf '%s' "$(bashio::config 'ha_tracked_entities')" > /var/run/s6/container_environment/HA_TRACKED_ENTITIES
-printf '%s' "$(bashio::config 'ha_polling_interval')" > /var/run/s6/container_environment/HA_POLLING_INTERVAL
-printf '%s' "$(bashio::config 'ha_polling_interval_stationary')" > /var/run/s6/container_environment/HA_POLLING_INTERVAL_STATIONARY
 printf '%s' "$(bashio::config 'ha_min_distance')" > /var/run/s6/container_environment/HA_MIN_DISTANCE
 
 # --- SECRET_KEY_BASE: auto-generate on first run, persist to /data ---

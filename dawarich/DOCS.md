@@ -36,13 +36,11 @@ Everything is bundled into a single app container:
 
 ### Device Tracking
 
-The app subscribes to Home Assistant's real-time event stream (SSE) and pushes location updates to Dawarich the instant your device reports a new position. If SSE is unavailable, it falls back to REST polling automatically.
+The app subscribes to Home Assistant's real-time event stream and pushes location updates to Dawarich the instant your device reports a new position. No polling, no delays — just set `ha_tracked_entities` and it works.
 
 | Option | Default | Description |
 |---|---|---|
 | `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable. |
-| `ha_polling_interval` | `30` | Polling interval in seconds when moving — only used in fallback polling mode (5-3600). |
-| `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary — only used in fallback polling mode (30-3600). |
 | `ha_min_distance` | `10` | Minimum distance in meters before a new position is recorded (0-1000). Filters GPS drift when stationary. Set to `0` to disable. |
 
 **Basic usage** — track a single device under the admin user:
@@ -62,11 +60,9 @@ Entities without a `:Name` suffix use the admin user. You can mix both styles:
 ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.tablet"
 ```
 
-#### Real-Time Tracking (SSE)
+#### How It Works
 
-By default, the tracker subscribes to Home Assistant's Server-Sent Events stream. Location updates are pushed to Dawarich the moment your phone reports a new position to HA — no polling delay. Check the app logs for `[SSE] connected` to confirm this mode is active.
-
-If SSE is unavailable (very old HA versions), the tracker automatically falls back to REST polling with adaptive intervals. The logs will show `[POLLING] falling back to REST polling mode`.
+The tracker subscribes to Home Assistant's Server-Sent Events stream for real-time `state_changed` events. Location updates are pushed to Dawarich the moment your phone reports a new position to HA — no polling delay. Check the app logs for `connected — receiving real-time state changes` to confirm it's active.
 
 Duplicate locations (same lat/lon) are always skipped. Positions closer than `ha_min_distance` meters (default: 10m) to the last recorded point are also filtered to prevent GPS drift noise.
 
