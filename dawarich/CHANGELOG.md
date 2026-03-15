@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.3-60
+
+- Rewrite HA tracker to use real-time SSE event stream instead of polling — location updates are pushed to Dawarich the instant HA receives them, eliminating tracking gaps
+- Automatic fallback to REST polling if SSE is unavailable (very old HA versions)
+- Persist session cookies for 1 year to prevent unexpected logouts
+- Extend Devise remember-me token to 1 year with sliding expiry
+- Clear logging of active tracking mode: `[SSE] connected` or `[POLLING] falling back`
+
 ## 1.3.3-56
 
 - Show friendly loading page instead of raw 502 Bad Gateway while Dawarich starts up

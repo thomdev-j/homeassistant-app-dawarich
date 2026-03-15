@@ -11,7 +11,7 @@
 ## Features
 
 - **Zero setup** — PostgreSQL, Redis, and all dependencies bundled in a single app container
-- **Automatic HA device tracking** — polls your `device_tracker` entities and pushes GPS data to Dawarich automatically
+- **Automatic HA device tracking** — subscribes to real-time state changes and pushes GPS data to Dawarich instantly
 - **Multi-device, multi-user** — assign devices to separate Dawarich users per household member via app config
 - **HA Ingress** — access the UI securely through the Home Assistant sidebar, no extra ports needed
 - **Full backups** — integrates with HA's backup system including automatic PostgreSQL dumps
@@ -50,7 +50,7 @@ Click **Open Web UI** in the sidebar, or navigate to `http://<your-ha-ip>:3000`.
 
 ## Automatic Location Tracking
 
-The app can poll Home Assistant `device_tracker` entities and automatically send their GPS data to Dawarich. No phone app needed — if Home Assistant already knows your location, Dawarich will too.
+The app subscribes to Home Assistant's real-time event stream and automatically sends GPS data to Dawarich the instant your device reports a new position. No phone app needed — if Home Assistant already knows your location, Dawarich will too.
 
 ### Single user
 
@@ -92,20 +92,15 @@ You can mix named and unnamed entities — unnamed ones use the admin account:
 ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.tablet"
 ```
 
-### Adaptive polling
+### Real-time tracking
 
-The tracker uses two polling intervals to balance data resolution against system resources:
+The tracker subscribes to Home Assistant's Server-Sent Events (SSE) stream for real-time `state_changed` events. When your phone pushes a new GPS position to HA, the tracker receives it instantly and forwards it to Dawarich — no polling delay, no gaps.
 
-- **Moving interval** (`ha_polling_interval`, default `30s`) — used when a device has changed position since the last poll. Lower values give more detailed tracks but increase CPU and network usage.
-- **Stationary interval** (`ha_polling_interval_stationary`, default `300s`) — used when a device hasn't moved. There's no value in polling every 30 seconds if someone is sitting at their desk, so the tracker backs off to save resources. As soon as movement is detected, it switches back to the moving interval.
+Check the app logs for `[SSE] connected — receiving real-time state changes` to confirm it's working.
 
-Duplicate locations (same lat/lon as last poll) are always skipped regardless of interval — no redundant data is stored.
+Duplicate locations (same lat/lon) are always skipped — no redundant data is stored.
 
-**Tuning tips:**
-- For walking/cycling detail, try `ha_polling_interval: 15`
-- For a car commute, `30` (default) is usually fine
-- On low-power devices (Pi 3), increase `ha_polling_interval_stationary` to `600` or higher
-- The minimum allowed value is `5s` (moving) and `30s` (stationary)
+**Fallback:** If SSE is unavailable (very old HA versions), the tracker automatically falls back to REST polling with adaptive intervals. The `ha_polling_interval` and `ha_polling_interval_stationary` settings only apply in this fallback mode.
 
 ## All Configuration Options
 
@@ -124,9 +119,9 @@ Duplicate locations (same lat/lon as last poll) are always skipped regardless of
 
 | Option | Default | Description |
 |---|---|---|
-| `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to poll for GPS data. Leave empty to disable automatic tracking. Optionally add a `:Name` suffix to assign a device to a specific user (see [Multi-user](#multiple-household-members) above). Find your entity IDs in HA under **Developer Tools → States**. |
-| `ha_polling_interval` | `30` | How often (in seconds) to poll devices that are moving. Range: 5-3600. Lower = more detailed tracks but more resource usage. See [Adaptive polling](#adaptive-polling) for details. |
-| `ha_polling_interval_stationary` | `300` | How often (in seconds) to poll devices that haven't moved. Range: 30-3600. Higher = less wasted polling when devices are stationary. Automatically switches to the moving interval when movement is detected. |
+| `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable automatic tracking. Optionally add a `:Name` suffix to assign a device to a specific user (see [Multi-user](#multiple-household-members) above). Find your entity IDs in HA under **Developer Tools → States**. |
+| `ha_polling_interval` | `30` | Polling interval in seconds when moving — only used in fallback polling mode (5-3600). Not needed when SSE is active. |
+| `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary — only used in fallback polling mode (30-3600). Not needed when SSE is active. |
 
 ## Data & Backups
 

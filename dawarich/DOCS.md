@@ -36,13 +36,13 @@ Everything is bundled into a single app container:
 
 ### Device Tracking
 
-The app can automatically poll Home Assistant device tracker entities and push their location data to Dawarich.
+The app subscribes to Home Assistant's real-time event stream (SSE) and pushes location updates to Dawarich the instant your device reports a new position. If SSE is unavailable, it falls back to REST polling automatically.
 
 | Option | Default | Description |
 |---|---|---|
-| `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to poll. Leave empty to disable. |
-| `ha_polling_interval` | `30` | Polling interval in seconds when a device is moving (5-3600). |
-| `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary (30-3600). |
+| `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable. |
+| `ha_polling_interval` | `30` | Polling interval in seconds when moving — only used in fallback polling mode (5-3600). |
+| `ha_polling_interval_stationary` | `300` | Polling interval in seconds when stationary — only used in fallback polling mode (30-3600). |
 
 **Basic usage** — track a single device under the admin user:
 ```
@@ -61,12 +61,11 @@ Entities without a `:Name` suffix use the admin user. You can mix both styles:
 ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.tablet"
 ```
 
-#### Adaptive Polling
+#### Real-Time Tracking (SSE)
 
-The tracker uses two intervals to balance data resolution against resource usage:
+By default, the tracker subscribes to Home Assistant's Server-Sent Events stream. Location updates are pushed to Dawarich the moment your phone reports a new position to HA — no polling delay. Check the app logs for `[SSE] connected` to confirm this mode is active.
 
-- **Moving interval** — used when a device has changed position. Lower values give more detailed tracks.
-- **Stationary interval** — used when a device hasn't moved. Avoids wasting resources polling a device sitting on a desk. Automatically switches back to the moving interval when movement is detected.
+If SSE is unavailable (very old HA versions), the tracker automatically falls back to REST polling with adaptive intervals. The logs will show `[POLLING] falling back to REST polling mode`.
 
 Duplicate locations (same lat/lon) are always skipped — no redundant data is stored.
 
