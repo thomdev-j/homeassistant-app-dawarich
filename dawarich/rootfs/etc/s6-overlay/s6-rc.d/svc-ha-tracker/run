@@ -1,10 +1,13 @@
 #!/usr/bin/with-contenv bash
 
 # HA Location Tracker → Dawarich bridge
-# Polls Home Assistant device_tracker entities and pushes location data
-# to the local Dawarich instance via the Overland API (GeoJSON format).
-# Features: deduplication (skip unchanged locations), adaptive polling
-# (slower when stationary, faster when moving).
+#
+# Pushes device_tracker location updates to Dawarich via the Overland API.
+# Two modes:
+#   1. SSE (preferred) — subscribes to HA's /api/stream for real-time
+#      state_changed events. Zero latency, zero wasted polls.
+#   2. Polling (fallback) — if SSE is unavailable, polls the REST API
+#      with adaptive intervals (fast when moving, slow when stationary).
 
 # Source bashio for logging, then disable set -e to prevent crash on errors
 source /usr/lib/bashio/bashio.sh || true
@@ -15,12 +18,6 @@ HA_POLLING_INTERVAL=$(cat /var/run/s6/container_environment/HA_POLLING_INTERVAL 
 HA_POLLING_INTERVAL_STATIONARY=$(cat /var/run/s6/container_environment/HA_POLLING_INTERVAL_STATIONARY 2>/dev/null)
 : "${HA_POLLING_INTERVAL:=30}"
 : "${HA_POLLING_INTERVAL_STATIONARY:=300}"
-
-# Number of consecutive "unchanged" polls before switching to stationary mode.
-# HA only updates device_tracker when the phone pushes a new position (every
-# 1-5 min), so a single unchanged poll does NOT mean stationary — it often
-# just means HA hasn't received a fresh update yet.
-STABLE_THRESHOLD=5
 
 if [ -z "$HA_TRACKED_ENTITIES" ]; then
   bashio::log.info "HA Tracker: not configured (set ha_tracked_entities in app config). Sleeping."
@@ -40,138 +37,220 @@ while true; do
 done
 DAWARICH_API_KEY_FALLBACK=$(cat /data/dawarich/api_key 2>/dev/null || echo "")
 
-# Check if SUPERVISOR_TOKEN is available
 if [ -z "$SUPERVISOR_TOKEN" ]; then
   bashio::log.error "HA Tracker: SUPERVISOR_TOKEN is not set! Cannot access HA API."
   exec sleep infinity
 fi
 
-# Strip :Name suffixes for display and build clean entity list
+# Build lookup set of tracked entity IDs and device names
+declare -A IS_TRACKED
+declare -A DEVICE_NAME
+IFS=',' read -ra ENTITY_LIST <<< "$HA_TRACKED_ENTITIES"
+for raw_entry in "${ENTITY_LIST[@]}"; do
+  raw_entry=$(echo "$raw_entry" | xargs)
+  [ -z "$raw_entry" ] && continue
+  entity="${raw_entry%%:*}"
+  entity=$(echo "$entity" | xargs)
+  IS_TRACKED[$entity]=1
+  DEVICE_NAME[$entity]=$(echo "$entity" | sed 's/device_tracker\.//')
+done
+
 HA_CLEAN_ENTITIES=$(echo "$HA_TRACKED_ENTITIES" | sed 's/:[^,]*//g')
-bashio::log.info "HA Tracker: polling entities [${HA_CLEAN_ENTITIES}]"
-bashio::log.info "HA Tracker: interval moving=${HA_POLLING_INTERVAL}s, stationary=${HA_POLLING_INTERVAL_STATIONARY}s"
+bashio::log.info "HA Tracker: tracking entities [${HA_CLEAN_ENTITIES}]"
 
 # Wait for Dawarich to be ready
 until curl -sf http://localhost:3000 -o /dev/null 2>/dev/null; do
   bashio::log.info "HA Tracker: waiting for Dawarich to be ready..."
   sleep 10
 done
+bashio::log.info "HA Tracker: Dawarich is ready"
 
-bashio::log.info "HA Tracker: Dawarich is ready, starting location polling"
-
-# Track last known position per entity for dedup
+# --- Dedup state (shared by both modes) ---
 declare -A LAST_LAT
 declare -A LAST_LON
-declare -A STABLE_CNT
 
-while true; do
-  is_moving=false
+# Push a single location point to Dawarich.
+# Args: entity_id state_json
+# state_json is the HA state object (with .attributes.latitude etc.)
+push_location() {
+  local entity="$1" state_json="$2"
 
-  IFS=',' read -ra ENTITIES <<< "$HA_TRACKED_ENTITIES"
-  for raw_entity in "${ENTITIES[@]}"; do
-    raw_entity=$(echo "$raw_entity" | xargs)  # trim whitespace
-    [ -z "$raw_entity" ] && continue
+  local lat lon
+  lat=$(echo "$state_json" | jq -r '.attributes.latitude // empty')
+  lon=$(echo "$state_json" | jq -r '.attributes.longitude // empty')
+  [ -z "$lat" ] || [ -z "$lon" ] && return 1
 
-    # Strip :Name suffix — only entity_id is needed for HA API
-    entity="${raw_entity%%:*}"
-    entity=$(echo "$entity" | xargs)
+  # Coordinate dedup — skip if identical to last pushed position.
+  # Important for SSE mode where non-location attribute changes (battery,
+  # connectivity) also fire state_changed events.
+  if [ "$lat" = "${LAST_LAT[$entity]:-}" ] && [ "$lon" = "${LAST_LON[$entity]:-}" ]; then
+    bashio::log.debug "HA Tracker: ${entity} coordinates unchanged, skipping"
+    return 1
+  fi
+  LAST_LAT[$entity]="$lat"
+  LAST_LON[$entity]="$lon"
 
-    # Device name from entity ID (e.g. device_tracker.sm_s911b → sm_s911b)
-    device_name=$(echo "$entity" | sed 's/device_tracker\.//')
+  local device_name="${DEVICE_NAME[$entity]}"
+  local acc batt alt speed vacc
+  acc=$(echo "$state_json" | jq -r '.attributes.gps_accuracy // .attributes.location_accuracy // empty')
+  batt=$(echo "$state_json" | jq -r '.attributes.battery_level // empty')
+  alt=$(echo "$state_json" | jq -r '.attributes.altitude // empty')
+  speed=$(echo "$state_json" | jq -r '.attributes.speed // .attributes.velocity // empty')
+  vacc=$(echo "$state_json" | jq -r '.attributes.vertical_accuracy // empty')
+  local tst
+  tst=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-    # Fetch entity state from HA Supervisor API
-    response=$(curl -s \
-      -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+  local props="{\"timestamp\":\"${tst}\",\"device_id\":\"${device_name}\""
+  [ -n "$acc" ] && props="${props},\"horizontal_accuracy\":${acc}"
+  [ -n "$alt" ] && props="${props},\"altitude\":${alt}"
+  [ -n "$speed" ] && props="${props},\"speed\":${speed}"
+  [ -n "$batt" ] && props="${props},\"battery_level\":${batt},\"battery_state\":\"unknown\""
+  [ -n "$vacc" ] && props="${props},\"vertical_accuracy\":${vacc}"
+  props="${props}}"
+
+  local payload="{\"locations\":[{\"type\":\"Feature\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[${lon},${lat}]},\"properties\":${props}}]}"
+
+  local api_key=""
+  if [ -f "/data/dawarich/api_keys/${entity}" ]; then
+    api_key=$(cat "/data/dawarich/api_keys/${entity}")
+  else
+    api_key="$DAWARICH_API_KEY_FALLBACK"
+  fi
+
+  local http_code
+  http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST -H "Content-Type: application/json" \
+    -d "$payload" \
+    "http://localhost:3000/api/v1/overland/batches?api_key=${api_key}")
+
+  if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+    bashio::log.info "HA Tracker: pushed ${entity} (${lat}, ${lon})"
+    return 0
+  else
+    bashio::log.warning "HA Tracker: failed to push ${entity}, HTTP ${http_code}"
+    return 1
+  fi
+}
+
+# Fetch current state for all tracked entities via REST (used on startup
+# before streaming begins, so we don't miss the initial position).
+initial_poll() {
+  for entity in "${!IS_TRACKED[@]}"; do
+    local response
+    response=$(curl -s -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
       "http://supervisor/core/api/states/${entity}" 2>/dev/null)
+    [ -z "$response" ] && continue
+    echo "$response" | jq -e '.' > /dev/null 2>&1 || continue
+    push_location "$entity" "$response"
+  done
+}
 
-    if [ -z "$response" ]; then
-      bashio::log.warning "HA Tracker: empty response for ${entity}"
-      continue
-    fi
+# =====================================================================
+#  MODE 1: SSE stream (real-time, preferred)
+# =====================================================================
+run_sse() {
+  bashio::log.info "HA Tracker: connecting to HA SSE stream..."
 
-    # Validate JSON before parsing
-    if ! echo "$response" | jq -e '.' > /dev/null 2>&1; then
-      bashio::log.warning "HA Tracker: invalid JSON response for ${entity}: ${response:0:200}"
-      continue
-    fi
+  # curl -N disables output buffering so we get lines as they arrive.
+  # --connect-timeout ensures we don't hang if the endpoint doesn't exist.
+  while IFS= read -r line; do
+    # SSE format: "data: {json}" lines contain the event payload
+    [[ "$line" != data:* ]] && continue
 
-    # Extract location data
-    lat=$(echo "$response" | jq -r '.attributes.latitude // empty')
-    lon=$(echo "$response" | jq -r '.attributes.longitude // empty')
+    local json="${line#data: }"
+    local entity_id
+    entity_id=$(echo "$json" | jq -r '.data.entity_id // empty' 2>/dev/null)
 
-    if [ -z "$lat" ] || [ -z "$lon" ]; then
-      bashio::log.debug "HA Tracker: no GPS data for ${entity}, skipping"
-      continue
-    fi
+    # Skip if not one of our tracked entities
+    [ -z "$entity_id" ] || [ -z "${IS_TRACKED[$entity_id]:-}" ] && continue
 
-    # Dedup: skip if location hasn't changed
-    prev_lat="${LAST_LAT[$entity]:-}"
-    prev_lon="${LAST_LON[$entity]:-}"
-    if [ "$lat" = "$prev_lat" ] && [ "$lon" = "$prev_lon" ]; then
-      STABLE_CNT[$entity]=$(( ${STABLE_CNT[$entity]:-0} + 1 ))
-      # Keep polling fast until position has been stable for several
-      # consecutive polls — HA often reports stale coordinates between
-      # phone updates, so one "unchanged" does not mean stationary.
-      if [ "${STABLE_CNT[$entity]}" -lt "$STABLE_THRESHOLD" ]; then
-        is_moving=true
+    local new_state
+    new_state=$(echo "$json" | jq -c '.data.new_state // empty' 2>/dev/null)
+    [ -z "$new_state" ] || [ "$new_state" = "null" ] && continue
+
+    push_location "$entity_id" "$new_state"
+  done < <(curl -N -s --connect-timeout 10 \
+    -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+    "http://supervisor/core/api/stream?restrict=state_changed" 2>/dev/null)
+}
+
+# =====================================================================
+#  MODE 2: REST polling (fallback)
+# =====================================================================
+run_polling() {
+  bashio::log.info "HA Tracker: using polling mode (interval moving=${HA_POLLING_INTERVAL}s, stationary=${HA_POLLING_INTERVAL_STATIONARY}s)"
+
+  # Number of consecutive "unchanged" polls before switching to stationary.
+  # HA reports stale coordinates between phone updates, so one "unchanged"
+  # does not mean stationary.
+  local STABLE_THRESHOLD=5
+  declare -A STABLE_CNT
+
+  while true; do
+    local is_moving=false
+
+    for entity in "${!IS_TRACKED[@]}"; do
+      local response
+      response=$(curl -s -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+        "http://supervisor/core/api/states/${entity}" 2>/dev/null)
+      [ -z "$response" ] && continue
+      echo "$response" | jq -e '.' > /dev/null 2>&1 || continue
+
+      local lat lon
+      lat=$(echo "$response" | jq -r '.attributes.latitude // empty')
+      lon=$(echo "$response" | jq -r '.attributes.longitude // empty')
+      [ -z "$lat" ] || [ -z "$lon" ] && continue
+
+      # Check if coordinates changed from last poll
+      if [ "$lat" = "${LAST_LAT[$entity]:-}" ] && [ "$lon" = "${LAST_LON[$entity]:-}" ]; then
+        STABLE_CNT[$entity]=$(( ${STABLE_CNT[$entity]:-0} + 1 ))
+        if [ "${STABLE_CNT[$entity]}" -lt "$STABLE_THRESHOLD" ]; then
+          is_moving=true
+        fi
+        continue
       fi
-      bashio::log.debug "HA Tracker: ${entity} unchanged (stable=${STABLE_CNT[$entity]}/${STABLE_THRESHOLD})"
-      continue
-    fi
 
-    # Position changed — reset stable count and mark as moving
-    STABLE_CNT[$entity]=0
-    is_moving=true
+      # Position changed
+      STABLE_CNT[$entity]=0
+      is_moving=true
+      push_location "$entity" "$response"
+    done
 
-    # Update last known position
-    LAST_LAT[$entity]="$lat"
-    LAST_LON[$entity]="$lon"
-
-    acc=$(echo "$response" | jq -r '.attributes.gps_accuracy // .attributes.location_accuracy // empty')
-    batt=$(echo "$response" | jq -r '.attributes.battery_level // empty')
-    alt=$(echo "$response" | jq -r '.attributes.altitude // empty')
-    speed=$(echo "$response" | jq -r '.attributes.speed // .attributes.velocity // empty')
-    vacc=$(echo "$response" | jq -r '.attributes.vertical_accuracy // empty')
-    tst=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-    # Build properties object, conditionally adding optional fields
-    props="{\"timestamp\":\"${tst}\",\"device_id\":\"${device_name}\""
-    [ -n "$acc" ] && props="${props},\"horizontal_accuracy\":${acc}"
-    [ -n "$alt" ] && props="${props},\"altitude\":${alt}"
-    [ -n "$speed" ] && props="${props},\"speed\":${speed}"
-    [ -n "$batt" ] && props="${props},\"battery_level\":${batt},\"battery_state\":\"unknown\""
-    [ -n "$vacc" ] && props="${props},\"vertical_accuracy\":${vacc}"
-    props="${props}}"
-
-    # Build GeoJSON payload
-    payload="{\"locations\":[{\"type\":\"Feature\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[${lon},${lat}]},\"properties\":${props}}]}"
-
-    # Read per-entity API key, fall back to legacy single key
-    ENTITY_API_KEY=""
-    if [ -f "/data/dawarich/api_keys/${entity}" ]; then
-      ENTITY_API_KEY=$(cat "/data/dawarich/api_keys/${entity}")
+    if [ "$is_moving" = true ]; then
+      sleep "$HA_POLLING_INTERVAL"
     else
-      ENTITY_API_KEY="$DAWARICH_API_KEY_FALLBACK"
-    fi
-
-    # Push to Dawarich Overland API (official batch endpoint)
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-      -X POST \
-      -H "Content-Type: application/json" \
-      -d "$payload" \
-      "http://localhost:3000/api/v1/overland/batches?api_key=${ENTITY_API_KEY}")
-
-    if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-      bashio::log.info "HA Tracker: pushed ${entity} (${lat}, ${lon})"
-    else
-      bashio::log.warning "HA Tracker: failed to push ${entity}, HTTP ${http_code}"
+      sleep "$HA_POLLING_INTERVAL_STATIONARY"
     fi
   done
+}
 
-  # Adaptive polling: use shorter interval when moving, longer when stationary
-  if [ "$is_moving" = true ]; then
-    sleep "$HA_POLLING_INTERVAL"
+# =====================================================================
+#  Main: try SSE, fall back to polling
+# =====================================================================
+
+# Capture initial positions before streaming
+initial_poll
+
+sse_failures=0
+while true; do
+  start_ts=$(date +%s)
+  run_sse
+  elapsed=$(( $(date +%s) - start_ts ))
+
+  if [ "$elapsed" -lt 10 ]; then
+    # Stream died almost immediately — likely not supported
+    sse_failures=$((sse_failures + 1))
+    if [ "$sse_failures" -ge 3 ]; then
+      bashio::log.warning "HA Tracker: SSE stream failed ${sse_failures} times, falling back to polling"
+      run_polling  # runs forever
+      break
+    fi
+    bashio::log.warning "HA Tracker: SSE stream failed after ${elapsed}s (attempt ${sse_failures}/3), retrying in 10s..."
+    sleep 10
   else
-    sleep "$HA_POLLING_INTERVAL_STATIONARY"
+    # Stream was alive for a while — probably a transient disconnect
+    sse_failures=0
+    bashio::log.info "HA Tracker: SSE stream disconnected after ${elapsed}s, reconnecting in 5s..."
+    sleep 5
   fi
 done
