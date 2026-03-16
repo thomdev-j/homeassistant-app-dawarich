@@ -122,12 +122,11 @@ Duplicate locations (same lat/lon) are always skipped. Additionally, positions c
 
 ### Reverse Geocoding
 
-Reverse geocoding converts GPS coordinates into human-readable place names (street, city, country). It works out of the box — the app uses the public [Photon](https://photon.komoot.io/) service by default (free, no API key needed, 1 request/second rate limit).
-
-For heavy usage or privacy, you can self-host a Photon instance or use Geoapify instead. These options are hidden under "Show unused optional configuration options" in the app config:
+Reverse geocoding converts GPS coordinates into human-readable place names (street, city, country). It's enabled by default using the public [Photon](https://photon.komoot.io/) service (free, no API key needed).
 
 | Option | Default | Description |
 |---|---|---|
+| `reverse_geocoding` | `true` | Enable or disable reverse geocoding. Disable if you don't need place names or prefer not to send coordinates to an external service. |
 | `photon_api_host` | `https://photon.komoot.io` | URL of the Photon geocoding service. Override to use a self-hosted instance. |
 | `geoapify_api_key` | _(empty)_ | If set, Dawarich uses [Geoapify](https://www.geoapify.com/) instead of Photon. Get a free API key from their website. |
 

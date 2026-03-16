@@ -38,13 +38,13 @@ printf '%s' "$(bashio::config 'admin_password')" > /var/run/s6/container_environ
 printf '%s' "$(bashio::config 'ha_tracked_entities')" > /var/run/s6/container_environment/HA_TRACKED_ENTITIES
 printf '%s' "$(bashio::config 'ha_min_distance')" > /var/run/s6/container_environment/HA_MIN_DISTANCE
 
-# Reverse geocoding — defaults to public Photon (free, no API key needed).
-# Users can override with their own Photon instance or switch to Geoapify.
-PHOTON_HOST="$(bashio::config 'photon_api_host')"
-: "${PHOTON_HOST:=https://photon.komoot.io}"
-printf '%s' "$PHOTON_HOST" > /var/run/s6/container_environment/PHOTON_API_HOST
-if bashio::config.has_value 'geoapify_api_key'; then
-  printf '%s' "$(bashio::config 'geoapify_api_key')" > /var/run/s6/container_environment/GEOAPIFY_API_KEY
+# Reverse geocoding — enabled by default using public Photon (free, no API key).
+if bashio::config.true 'reverse_geocoding'; then
+  printf '%s' "$(bashio::config 'photon_api_host')" > /var/run/s6/container_environment/PHOTON_API_HOST
+  GEOAPIFY_KEY="$(bashio::config 'geoapify_api_key')"
+  if [ -n "$GEOAPIFY_KEY" ]; then
+    printf '%s' "$GEOAPIFY_KEY" > /var/run/s6/container_environment/GEOAPIFY_API_KEY
+  fi
 fi
 
 # --- SECRET_KEY_BASE: auto-generate on first run, persist to /data ---
