@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.4-1
+
+- Upgrade base image to Dawarich 1.3.4
+- Family location sharing, redesigned onboarding, geocoding and UI fixes
+
 ## 1.3.3-70
 
 - Fix Photon host format — strip protocol prefix, set `PHOTON_API_USE_HTTPS` separately per Dawarich docs
