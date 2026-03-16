@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3-70
+
+- Fix Photon host format — strip protocol prefix, set `PHOTON_API_USE_HTTPS` separately per Dawarich docs
+
 ## 1.3.3-69
 
 - Add Geoapify API startup test to verify API key works

@@ -57,8 +57,16 @@ if bashio::config.true 'reverse_geocoding'; then
     fi
   else
     PHOTON_URL="$(bashio::config 'photon_api_host')"
-    printf '%s' "$PHOTON_URL" > /var/run/s6/container_environment/PHOTON_API_HOST
-    bashio::log.info "Reverse geocoding: enabled (Photon: ${PHOTON_URL})"
+    # Strip protocol — Dawarich expects just the hostname and uses PHOTON_API_USE_HTTPS separately
+    PHOTON_HOST="${PHOTON_URL#https://}"
+    PHOTON_HOST="${PHOTON_HOST#http://}"
+    printf '%s' "$PHOTON_HOST" > /var/run/s6/container_environment/PHOTON_API_HOST
+    if [[ "$PHOTON_URL" == https://* ]]; then
+      printf '%s' "true" > /var/run/s6/container_environment/PHOTON_API_USE_HTTPS
+    else
+      printf '%s' "false" > /var/run/s6/container_environment/PHOTON_API_USE_HTTPS
+    fi
+    bashio::log.info "Reverse geocoding: enabled (Photon: ${PHOTON_HOST})"
     # Verify Photon reverse geocoding is reachable
     PHOTON_TEST_URL="${PHOTON_URL}/reverse?lat=48.8584&lon=2.2945"
     bashio::log.debug "Reverse geocoding: testing API at ${PHOTON_TEST_URL}"
