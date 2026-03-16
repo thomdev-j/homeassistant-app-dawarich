@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.3-64
+## 1.3.3-65
 
 - Enable reverse geocoding out of the box via public Photon service (free, no API key)
 - Add optional `photon_api_host` and `geoapify_api_key` config for self-hosted or alternative providers
