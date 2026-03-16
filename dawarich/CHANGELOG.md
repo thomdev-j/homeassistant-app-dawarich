@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3-69
+
+- Add Geoapify API startup test to verify API key works
+
 ## 1.3.3-68
 
 - Fix Geoapify/Photon env vars being set simultaneously — now mutually exclusive
