@@ -38,17 +38,17 @@ printf '%s' "$(bashio::config 'admin_password')" > /var/run/s6/container_environ
 printf '%s' "$(bashio::config 'ha_tracked_entities')" > /var/run/s6/container_environment/HA_TRACKED_ENTITIES
 printf '%s' "$(bashio::config 'ha_min_distance')" > /var/run/s6/container_environment/HA_MIN_DISTANCE
 
-# Reverse geocoding — enabled by default using public Photon (free, no API key).
+# Reverse geocoding
 if bashio::config.true 'reverse_geocoding'; then
-  printf '%s' "$(bashio::config 'photon_api_host')" > /var/run/s6/container_environment/PHOTON_API_HOST
   GEOAPIFY_KEY="$(bashio::config 'geoapify_api_key')"
   if [ -n "$GEOAPIFY_KEY" ]; then
     printf '%s' "$GEOAPIFY_KEY" > /var/run/s6/container_environment/GEOAPIFY_API_KEY
     bashio::log.info "Reverse geocoding: enabled (Geoapify)"
   else
     PHOTON_URL="$(bashio::config 'photon_api_host')"
+    printf '%s' "$PHOTON_URL" > /var/run/s6/container_environment/PHOTON_API_HOST
     bashio::log.info "Reverse geocoding: enabled (Photon: ${PHOTON_URL})"
-    # Verify Photon API is reachable with a test query (Eiffel Tower coordinates)
+    # Verify Photon reverse geocoding is reachable
     PHOTON_TEST_URL="${PHOTON_URL}/reverse?lat=48.8584&lon=2.2945"
     bashio::log.debug "Reverse geocoding: testing API at ${PHOTON_TEST_URL}"
     PHOTON_RESPONSE=$(curl -sf "${PHOTON_TEST_URL}" 2>&1)

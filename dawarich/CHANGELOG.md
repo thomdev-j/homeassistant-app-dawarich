@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3-68
+
+- Fix Geoapify/Photon env vars being set simultaneously — now mutually exclusive
+
 ## 1.3.3-67
 
 - Default `reverse_geocoding` to `false` — public Photon instance does not support reverse geocoding
