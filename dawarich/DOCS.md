@@ -66,6 +66,15 @@ The tracker subscribes to Home Assistant's Server-Sent Events stream for real-ti
 
 Duplicate locations (same lat/lon) are always skipped. Positions closer than `ha_min_distance` meters (default: 10m) to the last recorded point are also filtered to prevent GPS drift noise.
 
+### Reverse Geocoding
+
+Reverse geocoding converts GPS coordinates into place names. It works out of the box using the public [Photon](https://photon.komoot.io/) service (free, no API key). To self-host Photon or use Geoapify, set these optional config options:
+
+| Option | Default | Description |
+|---|---|---|
+| `photon_api_host` | `https://photon.komoot.io` | URL of the Photon geocoding service. Override for a self-hosted instance. |
+| `geoapify_api_key` | _(empty)_ | If set, uses Geoapify instead of Photon. |
+
 ### Important Notes
 
 - **`application_hosts`** must include the hostname/IP you use to access the UI, or Rails will reject requests (not needed for ingress)

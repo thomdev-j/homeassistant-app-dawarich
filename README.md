@@ -120,6 +120,17 @@ Duplicate locations (same lat/lon) are always skipped. Additionally, positions c
 | `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable automatic tracking. Optionally add a `:Name` suffix to assign a device to a specific user (see [Multi-user](#multiple-household-members) above). Find your entity IDs in HA under **Developer Tools → States**. |
 | `ha_min_distance` | `10` | Minimum distance in meters a device must move before the new position is recorded (0-1000). Filters GPS drift when stationary — typical drift is 3-15m. Set to `0` to disable and record every position change. |
 
+### Reverse Geocoding
+
+Reverse geocoding converts GPS coordinates into human-readable place names (street, city, country). It works out of the box — the app uses the public [Photon](https://photon.komoot.io/) service by default (free, no API key needed, 1 request/second rate limit).
+
+For heavy usage or privacy, you can self-host a Photon instance or use Geoapify instead. These options are hidden under "Show unused optional configuration options" in the app config:
+
+| Option | Default | Description |
+|---|---|---|
+| `photon_api_host` | `https://photon.komoot.io` | URL of the Photon geocoding service. Override to use a self-hosted instance. |
+| `geoapify_api_key` | _(empty)_ | If set, Dawarich uses [Geoapify](https://www.geoapify.com/) instead of Photon. Get a free API key from their website. |
+
 ## Data & Backups
 
 All data persists across app restarts and updates under `/data/`:

@@ -1,7 +1,9 @@
 # Changelog
 
-## 1.3.3-63
+## 1.3.3-64
 
+- Enable reverse geocoding out of the box via public Photon service (free, no API key)
+- Add optional `photon_api_host` and `geoapify_api_key` config for self-hosted or alternative providers
 - Fix `FATAL: role "root" does not exist` log warnings during startup
 
 ## 1.3.3-62
