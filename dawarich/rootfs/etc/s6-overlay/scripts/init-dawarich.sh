@@ -44,7 +44,12 @@ if bashio::config.true 'reverse_geocoding'; then
   GEOAPIFY_KEY="$(bashio::config 'geoapify_api_key')"
   if [ -n "$GEOAPIFY_KEY" ]; then
     printf '%s' "$GEOAPIFY_KEY" > /var/run/s6/container_environment/GEOAPIFY_API_KEY
+    bashio::log.info "Reverse geocoding: enabled (Geoapify)"
+  else
+    bashio::log.info "Reverse geocoding: enabled (Photon: $(bashio::config 'photon_api_host'))"
   fi
+else
+  bashio::log.info "Reverse geocoding: disabled"
 fi
 
 # --- SECRET_KEY_BASE: auto-generate on first run, persist to /data ---
