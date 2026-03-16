@@ -1,13 +1,18 @@
 # Changelog
 
+## 1.3.3-67
+
+- Default `reverse_geocoding` to `false` — public Photon instance does not support reverse geocoding
+- Document provider options: Geoapify (free API key), self-hosted Photon, Dawarich Patreon
+
 ## 1.3.3-66
 
 - Add Photon API connectivity test on startup with debug logging
 
 ## 1.3.3-65
 
-- Enable reverse geocoding out of the box via public Photon service (free, no API key)
-- Add optional `photon_api_host` and `geoapify_api_key` config for self-hosted or alternative providers
+- Add reverse geocoding support with `reverse_geocoding` toggle, `photon_api_host`, and `geoapify_api_key` config options
+- Test geocoding API on startup and log result
 - Fix `FATAL: role "root" does not exist` log warnings during startup
 
 ## 1.3.3-62

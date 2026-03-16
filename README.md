@@ -122,13 +122,21 @@ Duplicate locations (same lat/lon) are always skipped. Additionally, positions c
 
 ### Reverse Geocoding
 
-Reverse geocoding converts GPS coordinates into human-readable place names (street, city, country). It's enabled by default using the public [Photon](https://photon.komoot.io/) service (free, no API key needed).
+Reverse geocoding converts GPS coordinates into human-readable place names (street, city, country). It's disabled by default because it requires a working geocoding provider.
+
+To enable it, set `reverse_geocoding` to `true` and configure one of these providers:
+
+- **Geoapify** (easiest) — sign up at [geoapify.com](https://www.geoapify.com/) for a free API key, then set `geoapify_api_key`
+- **Self-hosted Photon** — run your own [Photon](https://github.com/komoot/photon) instance and set `photon_api_host` to its URL
+- **Dawarich Patreon** — supporters get access to `photon.dawarich.app` (set as `photon_api_host`)
+
+The app tests the geocoding API on startup and logs whether it's reachable.
 
 | Option | Default | Description |
 |---|---|---|
-| `reverse_geocoding` | `true` | Enable or disable reverse geocoding. Disable if you don't need place names or prefer not to send coordinates to an external service. |
-| `photon_api_host` | `https://photon.komoot.io` | URL of the Photon geocoding service. Override to use a self-hosted instance. |
-| `geoapify_api_key` | _(empty)_ | If set, Dawarich uses [Geoapify](https://www.geoapify.com/) instead of Photon. Get a free API key from their website. |
+| `reverse_geocoding` | `false` | Enable reverse geocoding to convert coordinates into place names. Requires a working provider (see above). |
+| `photon_api_host` | `https://photon.komoot.io` | URL of the Photon geocoding service. The public instance does not currently support reverse geocoding — use a self-hosted instance instead. |
+| `geoapify_api_key` | _(empty)_ | If set, Dawarich uses [Geoapify](https://www.geoapify.com/) instead of Photon. Free tier available. |
 
 ## Data & Backups
 
