@@ -46,7 +46,20 @@ if bashio::config.true 'reverse_geocoding'; then
     printf '%s' "$GEOAPIFY_KEY" > /var/run/s6/container_environment/GEOAPIFY_API_KEY
     bashio::log.info "Reverse geocoding: enabled (Geoapify)"
   else
-    bashio::log.info "Reverse geocoding: enabled (Photon: $(bashio::config 'photon_api_host'))"
+    PHOTON_URL="$(bashio::config 'photon_api_host')"
+    bashio::log.info "Reverse geocoding: enabled (Photon: ${PHOTON_URL})"
+    # Verify Photon API is reachable with a test query (Eiffel Tower coordinates)
+    PHOTON_TEST_URL="${PHOTON_URL}/reverse?lat=48.8584&lon=2.2945"
+    bashio::log.debug "Reverse geocoding: testing API at ${PHOTON_TEST_URL}"
+    PHOTON_RESPONSE=$(curl -sf "${PHOTON_TEST_URL}" 2>&1)
+    PHOTON_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${PHOTON_TEST_URL}" 2>/dev/null)
+    PHOTON_CITY=$(echo "$PHOTON_RESPONSE" | jq -r '.features[0].properties.city // empty' 2>/dev/null)
+    if [ -n "$PHOTON_CITY" ]; then
+      bashio::log.info "Reverse geocoding: API reachable (test: ${PHOTON_CITY})"
+    else
+      bashio::log.warning "Reverse geocoding: API test failed (HTTP ${PHOTON_HTTP_CODE})"
+      bashio::log.debug "Reverse geocoding: response: ${PHOTON_RESPONSE}"
+    fi
   fi
 else
   bashio::log.info "Reverse geocoding: disabled"

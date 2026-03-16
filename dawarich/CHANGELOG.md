@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3-66
+
+- Add Photon API connectivity test on startup with debug logging
+
 ## 1.3.3-65
 
 - Enable reverse geocoding out of the box via public Photon service (free, no API key)
