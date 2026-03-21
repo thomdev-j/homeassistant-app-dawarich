@@ -2,6 +2,8 @@
 
 [![HA App][ha-app-badge]][ha-app-link]
 
+[![Add App Repository to My Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/thomdev-j/homeassistant-addon-dawarich)
+
 ![Dawarich running inside Home Assistant](images/screenshot.jpg)
 
 **This app runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
@@ -20,7 +22,9 @@
 
 ### 1. Install
 
-Add this repository URL to your Home Assistant app store:
+[![Add App Repository to My Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/thomdev-j/homeassistant-addon-dawarich)
+
+Or manually add this repository URL to your Home Assistant app store:
 
 ```
 https://github.com/thomdev-j/homeassistant-addon-dawarich
