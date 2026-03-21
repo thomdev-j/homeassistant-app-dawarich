@@ -46,7 +46,7 @@ if bashio::config.true 'reverse_geocoding'; then
     bashio::log.info "Reverse geocoding: enabled (Geoapify)"
     # Verify Geoapify API key works
     GEOAPIFY_TEST_URL="https://api.geoapify.com/v1/geocode/reverse?lat=48.8584&lon=2.2945&apiKey=${GEOAPIFY_KEY}"
-    GEOAPIFY_RESPONSE=$(curl -sf "${GEOAPIFY_TEST_URL}" 2>&1)
+    GEOAPIFY_RESPONSE=$(curl -sf "${GEOAPIFY_TEST_URL}" 2>&1) || true
     GEOAPIFY_CITY=$(echo "$GEOAPIFY_RESPONSE" | jq -r '.features[0].properties.city // empty' 2>/dev/null)
     if [ -n "$GEOAPIFY_CITY" ]; then
       bashio::log.info "Reverse geocoding: API reachable (test: ${GEOAPIFY_CITY})"
@@ -57,6 +57,7 @@ if bashio::config.true 'reverse_geocoding'; then
     fi
   else
     PHOTON_URL="$(bashio::config 'photon_api_host')"
+    PHOTON_KEY="$(bashio::config 'photon_api_key')"
     # Strip protocol — Dawarich expects just the hostname and uses PHOTON_API_USE_HTTPS separately
     PHOTON_HOST="${PHOTON_URL#https://}"
     PHOTON_HOST="${PHOTON_HOST#http://}"
@@ -66,18 +67,23 @@ if bashio::config.true 'reverse_geocoding'; then
     else
       printf '%s' "false" > /var/run/s6/container_environment/PHOTON_API_USE_HTTPS
     fi
-    bashio::log.info "Reverse geocoding: enabled (Photon: ${PHOTON_HOST})"
-    # Verify Photon reverse geocoding is reachable
-    PHOTON_TEST_URL="${PHOTON_URL}/reverse?lat=48.8584&lon=2.2945"
-    bashio::log.debug "Reverse geocoding: testing API at ${PHOTON_TEST_URL}"
-    PHOTON_RESPONSE=$(curl -sf "${PHOTON_TEST_URL}" 2>&1)
-    PHOTON_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${PHOTON_TEST_URL}" 2>/dev/null)
-    PHOTON_CITY=$(echo "$PHOTON_RESPONSE" | jq -r '.features[0].properties.city // empty' 2>/dev/null)
-    if [ -n "$PHOTON_CITY" ]; then
-      bashio::log.info "Reverse geocoding: API reachable (test: ${PHOTON_CITY})"
+    if [ -n "$PHOTON_KEY" ]; then
+      printf '%s' "$PHOTON_KEY" > /var/run/s6/container_environment/PHOTON_API_KEY
+      bashio::log.info "Reverse geocoding: enabled (Photon: ${PHOTON_HOST}, API key set)"
     else
-      bashio::log.warning "Reverse geocoding: API test failed (HTTP ${PHOTON_HTTP_CODE})"
-      bashio::log.debug "Reverse geocoding: response: ${PHOTON_RESPONSE}"
+      bashio::log.info "Reverse geocoding: enabled (Photon: ${PHOTON_HOST})"
+      # Verify Photon reverse geocoding is reachable (skip when API key is set — can't test auth)
+      PHOTON_TEST_URL="${PHOTON_URL}/reverse?lat=48.8584&lon=2.2945"
+      bashio::log.debug "Reverse geocoding: testing API at ${PHOTON_TEST_URL}"
+      PHOTON_RESPONSE=$(curl -sf "${PHOTON_TEST_URL}" 2>&1) || true
+      PHOTON_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${PHOTON_TEST_URL}" 2>/dev/null)
+      PHOTON_CITY=$(echo "$PHOTON_RESPONSE" | jq -r '.features[0].properties.city // empty' 2>/dev/null)
+      if [ -n "$PHOTON_CITY" ]; then
+        bashio::log.info "Reverse geocoding: API reachable (test: ${PHOTON_CITY})"
+      else
+        bashio::log.warning "Reverse geocoding: API test failed (HTTP ${PHOTON_HTTP_CODE})"
+        bashio::log.debug "Reverse geocoding: response: ${PHOTON_RESPONSE}"
+      fi
     fi
   fi
 else
