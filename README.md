@@ -126,9 +126,9 @@ Duplicate locations (same lat/lon) are always skipped. Additionally, positions c
 
 ### Reverse Geocoding
 
-Reverse geocoding converts GPS coordinates into human-readable place names (street, city, country). It's disabled by default because it requires a working geocoding provider.
+Reverse geocoding converts GPS coordinates into human-readable place names (street, city, country). Disabled by default — just set `reverse_geocoding` to `true` to use the public Photon instance (no key needed).
 
-To enable it, set `reverse_geocoding` to `true` and configure one of these providers:
+Optionally, you can use a different provider instead:
 
 - **Photon (public)** — the default (`photon.komoot.io`) works out of the box, no key needed
 - **Photon (self-hosted)** — run your own [Photon](https://github.com/komoot/photon) instance and set `photon_api_host` to its URL

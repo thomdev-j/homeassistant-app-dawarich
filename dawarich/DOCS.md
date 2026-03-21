@@ -68,7 +68,7 @@ Duplicate locations (same lat/lon) are always skipped. Positions closer than `ha
 
 ### Reverse Geocoding
 
-Reverse geocoding converts GPS coordinates into place names. Disabled by default — requires a geocoding provider. Options: [Photon](https://github.com/komoot/photon) (public instance, self-hosted, or Dawarich Patreon), or [Geoapify](https://www.geoapify.com/) (free API key). The app tests the API on startup and logs whether it's reachable.
+Reverse geocoding converts GPS coordinates into place names. Disabled by default — just enable `reverse_geocoding` to use the public [Photon](https://github.com/komoot/photon) instance (no key needed). Alternatively, use a self-hosted Photon, Dawarich Patreon (`photon.dawarich.app`), or [Geoapify](https://www.geoapify.com/). The app tests the API on startup and logs whether it's reachable.
 
 | Option | Default | Description |
 |---|---|---|
