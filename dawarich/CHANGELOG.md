@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4-2
+
+- Add `photon_api_key` config option for Dawarich Patreon supporters using `photon.dawarich.app`
+- Fix startup crash (exit 22) when geocoding API test fails
+- Public Photon instance (`photon.komoot.io`) now supports reverse geocoding
+
 ## 1.3.4-1
 
 - Upgrade base image to Dawarich 1.3.4
