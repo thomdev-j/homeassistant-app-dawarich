@@ -1,0 +1,87 @@
+name: Check for new Dawarich release
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # daily at 08:00 UTC
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get current and latest versions
+        id: versions
+        run: |
+          CURRENT=$(grep -m1 'freikin/dawarich:' dawarich/build.yaml | sed 's/.*freikin\/dawarich://')
+          LATEST=$(curl -sf https://api.github.com/repos/Freika/dawarich/releases/latest | jq -r '.tag_name')
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "Current: $CURRENT, Latest: $LATEST"
+
+      - name: Fetch release notes
+        if: steps.versions.outputs.current != steps.versions.outputs.latest
+        id: release
+        run: |
+          LATEST="${{ steps.versions.outputs.latest }}"
+          BODY=$(curl -sf "https://api.github.com/repos/Freika/dawarich/releases/latest" | jq -r '.body')
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "body<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$BODY" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Update version files
+        if: steps.versions.outputs.current != steps.versions.outputs.latest
+        env:
+          CURRENT: ${{ steps.versions.outputs.current }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+        run: |
+          # build.yaml — base image tag
+          sed -i "s|freikin/dawarich:${CURRENT}|freikin/dawarich:${LATEST}|g" dawarich/build.yaml
+
+          # config.yaml — addon version
+          OLD_VERSION=$(grep '^version:' dawarich/config.yaml | sed 's/version: *"\(.*\)"/\1/')
+          NEW_VERSION="${LATEST}-1"
+          sed -i "s|version: \"${OLD_VERSION}\"|version: \"${NEW_VERSION}\"|" dawarich/config.yaml
+
+          # CHANGELOG.md — prepend new entry
+          CHANGELOG_ENTRY="## ${NEW_VERSION}\n\n- Upgrade base image to Dawarich ${LATEST}\n- See [release notes](https://github.com/Freika/dawarich/releases/tag/${LATEST}) for upstream changes"
+          sed -i "s|^# Changelog$|# Changelog\n\n${CHANGELOG_ENTRY}|" dawarich/CHANGELOG.md
+
+          # README.md — update version line
+          sed -i "s|^\*\*Current Dawarich version: .*|\*\*Current Dawarich version: ${LATEST}\*\* ([release notes](https://github.com/Freika/dawarich/releases/tag/${LATEST}))|" README.md
+
+      - name: Create pull request
+        if: steps.versions.outputs.current != steps.versions.outputs.latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+          CURRENT: ${{ steps.versions.outputs.current }}
+          RELEASE_BODY: ${{ steps.release.outputs.body }}
+        run: |
+          BRANCH="auto/dawarich-${LATEST}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "Bump Dawarich to ${LATEST}"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "Bump Dawarich to ${LATEST}" \
+            --body "$(cat <<EOF
+          ## Summary
+
+          New Dawarich release detected: **${CURRENT}** → **${LATEST}**
+
+          ### Upstream release notes
+
+          ${RELEASE_BODY}
+
+          ---
+          Full release: https://github.com/Freika/dawarich/releases/tag/${LATEST}
+          EOF
+          )"
