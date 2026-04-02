@@ -2,7 +2,7 @@ name: Check for new Dawarich release
 
 on:
   schedule:
-    - cron: "0 8 * * *" # daily at 08:00 UTC
+    - cron: "0 8 * * 1" # every Monday at 08:00 UTC
   workflow_dispatch: # allow manual trigger
 
 jobs:
