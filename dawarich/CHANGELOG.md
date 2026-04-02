@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.1-1
+
+- Upgrade base image to Dawarich 1.6.1
+- Immich photo enrichment with geodata (1.6.0)
+- Two-factor authentication with TOTP and backup codes (1.6.0)
+- GPS noise filtering, map layer management, "Day per Country" analytics (1.5.0)
+- Family page map, visit confirmation buttons, visual redesign (1.4.0)
+- 50+ bug fixes across 1.4.0–1.6.1 including deadlock fixes, memory crash on large imports, and compressed zip import failures
+
 ## 1.3.4-2
 
 - Add `photon_api_key` config option for Dawarich Patreon supporters using `photon.dawarich.app`
