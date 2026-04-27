@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0-1
+
+- Upgrade base image to Dawarich 1.7.0 ([release notes](https://github.com/Freika/dawarich/releases/tag/1.7.0))
+- Map v2 Timeline is now a first-class feature — a full Google Timeline replacement
+- Configurable GPS noise filtering in Map v2 → Settings (accuracy threshold 50–1000 m, was hardcoded to 100 m); can be disabled entirely for trains and other weak-signal sources
+- Monthly digest emails on the 2nd of each month (opt out at Settings → Email Preferences); year-end digest is now a separate toggle
+- Year-end digest email rewritten with ASCII charts so it renders cleanly in Gmail/Outlook
+- Visible, selectable family invitation URL on the family page — useful for self-hosted instances without SMTP
+- Many bug fixes: visit names no longer overwritten by location names, Map v2 replay slider respects configured timezone, Stats charts no longer stuck on "Loading…", date-navigation buttons honour selected interval, country canonicalization on Stats page
+
 ## 1.6.1-1
 
 - Upgrade base image to Dawarich 1.6.1
