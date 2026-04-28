@@ -29,7 +29,7 @@
 Or manually add this repository URL to your Home Assistant app store:
 
 ```
-https://github.com/thomdev-j/homeassistant-addon-dawarich
+https://github.com/thomdev-j/homeassistant-app-dawarich
 ```
 
 **Settings** → **Apps** → **+ Install App** → **Repositories** → paste the URL → **Add**
