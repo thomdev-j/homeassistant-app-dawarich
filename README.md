@@ -4,7 +4,7 @@
 
 [![HA App][ha-app-badge]][ha-app-link]
 
-[![Add App Repository to My Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/thomdev-j/homeassistant-addon-dawarich)
+[![Add App Repository to My Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/thomdev-j/homeassistant-app-dawarich)
 
 ![Dawarich running inside Home Assistant](images/screenshot.jpg)
 
@@ -29,7 +29,7 @@
 Or manually add this repository URL to your Home Assistant app store:
 
 ```
-https://github.com/thomdev-j/homeassistant-addon-dawarich
+https://github.com/thomdev-j/homeassistant-app-dawarich
 ```
 
 **Settings** → **Apps** → **+ Install App** → **Repositories** → paste the URL → **Add**
