@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.5-1
+
+- Upgrade base image to Dawarich 1.7.5
+- See [release notes](https://github.com/Freika/dawarich/releases/tag/1.7.5) for upstream changes
+
 ## 1.7.1-1
 
 - Upgrade base image to Dawarich 1.7.1 — see upstream [1.7.0](https://github.com/Freika/dawarich/releases/tag/1.7.0) and [1.7.1](https://github.com/Freika/dawarich/releases/tag/1.7.1) release notes for user-facing changes
