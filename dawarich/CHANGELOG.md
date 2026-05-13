@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.7-1
+
+- Upgrade base image to Dawarich 1.7.7 — see upstream [1.7.2](https://github.com/Freika/dawarich/releases/tag/1.7.2), [1.7.3](https://github.com/Freika/dawarich/releases/tag/1.7.3), [1.7.4](https://github.com/Freika/dawarich/releases/tag/1.7.4), [1.7.5](https://github.com/Freika/dawarich/releases/tag/1.7.5), [1.7.6](https://github.com/Freika/dawarich/releases/tag/1.7.6), and [1.7.7](https://github.com/Freika/dawarich/releases/tag/1.7.7) release notes
+- Security audit fixes: path-traversal in archive import, OAuth account-link consent, SSRF blocklist for Immich/PhotoPrism URLs, 2FA brute-force rate limit, stored XSS sanitization, 12-char minimum password length, 256-bit API keys (1.7.3)
+- Map v2: delete-from-card, manual transportation-mode correction, bulk visit confirm/decline, trip recalculate button, heatmap visible at city zoom, mobile safe-area fit (1.7.2, 1.7.5, 1.7.6)
+- Polarsteps and Google "Timeline Edits.json" Takeout imports; clearer errors on unsupported uploads (1.7.3, 1.7.6)
+- Visit suggestions now triggered by live tracking (Dawarich iOS app, OwnTracks, Overland, Traccar), not just imports (1.7.5)
+- Many timezone, track-merge, stats, and reverse-geocoding fixes; duplicate-tracks prevention (1.7.5–1.7.7)
+- No env-variable changes required for this addon — Prometheus migration to Yabeda (1.7.7) only affects setups with `PROMETHEUS_EXPORTER_ENABLED=true`; `JWT_SECRET_KEY` no longer required (1.7.4)
+
 ## 1.7.1-1
 
 - Upgrade base image to Dawarich 1.7.1 — see upstream [1.7.0](https://github.com/Freika/dawarich/releases/tag/1.7.0) and [1.7.1](https://github.com/Freika/dawarich/releases/tag/1.7.1) release notes for user-facing changes
