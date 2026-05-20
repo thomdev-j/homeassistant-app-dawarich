@@ -2,7 +2,7 @@ name: Dawarich
 version: "1.7.7-1"
 slug: dawarich
 description: Self-hosted location tracking — Google Timeline alternative
-url: https://github.com/thomdev-j/homeassistant-addon-dawarich
+url: https://github.com/thomdev-j/homeassistant-app-dawarich
 arch:
   - aarch64
   - amd64
