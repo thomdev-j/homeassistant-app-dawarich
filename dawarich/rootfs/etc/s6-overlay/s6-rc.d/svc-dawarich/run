@@ -29,6 +29,21 @@ if ! bundle exec rails db:migrate 2>&1; then
   exit 1
 fi
 
+# Post-upgrade backfill tasks (idempotent, gated by per-version marker).
+# 1.7.9: backfill place names and clean up suggested places for the new
+# real-time Photon visit/place system. Safe to re-run; only needed once
+# per existing install upgrading from <1.7.9.
+if [ ! -f /data/dawarich/.post_upgrade_1.7.9 ]; then
+  echo "Running 1.7.9 post-upgrade backfill (dawarich:backfill_place_names, dawarich:cleanup_suggested_places)..."
+  if bundle exec rails dawarich:backfill_place_names 2>&1 \
+     && bundle exec rails dawarich:cleanup_suggested_places 2>&1; then
+    touch /data/dawarich/.post_upgrade_1.7.9
+    echo "1.7.9 post-upgrade backfill complete."
+  else
+    echo "WARNING: 1.7.9 post-upgrade backfill failed; will retry on next boot."
+  fi
+fi
+
 # Create default admin user if it doesn't exist yet
 ADMIN_EMAIL=$(cat /var/run/s6/container_environment/ADMIN_EMAIL 2>/dev/null || echo "")
 ADMIN_PASSWORD=$(cat /var/run/s6/container_environment/ADMIN_PASSWORD 2>/dev/null || echo "")

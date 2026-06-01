@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.11-1
+
+- Upgrade base image to Dawarich 1.7.11 — see upstream [1.7.9](https://github.com/Freika/dawarich/releases/tag/1.7.9), [1.7.10](https://github.com/Freika/dawarich/releases/tag/1.7.10), and [1.7.11](https://github.com/Freika/dawarich/releases/tag/1.7.11) release notes
+- New Map v2 features: H3 **Hexagons** heatmap layer, area-selection bulk delete (incl. anomalies), area Edit button, GPX/GeoJSON trip downloads, hover tooltips on family member markers (1.7.9–1.7.11)
+- Real-time Photon place suggestions: one Place per visit (was up to 25 candidates); `POST /api/v1/visits/:id/select_place` to swap; `place_visits` table will be removed in a follow-up release (1.7.9)
+- New **Minimum visit duration** setting (default 5 min, replaces hardcoded 3 min); visit detection now ignores drive-bys and respects your enabled transportation modes; smart density fill fixed (1.7.10)
+- Many fixes: overlapping tracks reconciled, late-arriving points reabsorbed, real-time family location updates, duplicate-import skip surfaced, Stats/Insights no longer 500 without `JWT_SECRET_KEY`, area geometry validation, two unused `points` indexes dropped on upgrade (frees several GB on large installs), 9 CVE-fix gem bumps (1.7.9–1.7.11)
+- Addon: on first boot after upgrade, runs the upstream-recommended `dawarich:backfill_place_names` and `dawarich:cleanup_suggested_places` rake tasks once (gated by a marker file in `/data`) so existing installs get the new Place data populated
+- New optional upstream env `OIDC_PKCE_ENABLED` is not exposed in the addon (off by default); request it if you need PKCE for an OIDC provider
+
 ## 1.7.8-2
 
 - Show the Dawarich sidebar panel for non-admin Home Assistant users (`panel_admin: false`). Dawarich's own login still applies, so non-admin HA users will need their own Dawarich credentials.
