@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.11-2
+
+- Fix imports failing with "Unknown error" / "No files were successfully uploaded" on files larger than ~1 MB. The bundled nginx proxy had no `client_max_body_size` set, so it fell back to the 1 MB default and rejected the ActiveStorage upload with HTTP 413 (`client intended to send too large body`). The limit is now removed and large upload bodies stream straight to Rails instead of buffering into the RAM-backed tmpfs ([#10](https://github.com/thomdev-j/homeassistant-app-dawarich/issues/10))
+
 ## 1.7.11-1
 
 - Upgrade base image to Dawarich 1.7.11 — see upstream [1.7.9](https://github.com/Freika/dawarich/releases/tag/1.7.9), [1.7.10](https://github.com/Freika/dawarich/releases/tag/1.7.10), and [1.7.11](https://github.com/Freika/dawarich/releases/tag/1.7.11) release notes
