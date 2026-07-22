@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.1-1
+
+- Upgrade base image to Dawarich 1.10.1 — see upstream release notes for [1.8.0](https://github.com/Freika/dawarich/releases/tag/1.8.0), [1.8.1](https://github.com/Freika/dawarich/releases/tag/1.8.1), [1.9.0](https://github.com/Freika/dawarich/releases/tag/1.9.0), [1.9.1](https://github.com/Freika/dawarich/releases/tag/1.9.1), [1.9.2](https://github.com/Freika/dawarich/releases/tag/1.9.2), [1.10.0](https://github.com/Freika/dawarich/releases/tag/1.10.0), and [1.10.1](https://github.com/Freika/dawarich/releases/tag/1.10.1)
+- **Breaking (1.10.1):** the legacy `latitude`/`longitude` columns on the `points` table are dropped. The automatic migration first copies any legacy-only coordinates into `lonlat`, so no data is lost. This runs on first boot via the addon's `db:migrate` step; existing installs already store geodata in `lonlat` (`STORE_GEODATA=true`)
+- **Behavior change (1.8.0):** declining a visit now permanently deletes it (the underlying location points are kept). The "Declined" filter and Restore action were removed
+- **Data no longer persisted (1.10.1):** raw import source data (`raw_data`), FIT/TCX health metrics (heart rate, cadence, power, temperature), and Google Takeout place labels are no longer stored
+- New features across 1.8–1.10: stay-point visit detection (opt-in per user), Fog of War per-hexagon reveal, AirTrail flight history on Map v2, redesigned trip detail with replay scrubber and per-day notes, public track sharing and live-location sharing, **Poster Studio** (printable travel posters, PNG/PDF export), PWA install to home screen, custom Map v2 colors, mobile settings sync API, Google Photos sidecar geotagging, and transportation-mode detection for TCX and Google Takeout imports
+- Poster Studio adds ~100 MB to the image and requires server-side rendering; it works on this addon's 64-bit builds (aarch64/amd64) and is unavailable only on 32-bit ARM
+- Upstream lowered its default `WEB_CONCURRENCY` to 1 and `BACKGROUND_PROCESSING_CONCURRENCY` to 3 (1.10.0). The addon still sets `background_processing_concurrency` explicitly (default 5), so that is unchanged; `WEB_CONCURRENCY` is left at the new upstream default, which trims idle memory on the Raspberry Pi (upstream idle footprint dropped ~843 → ~690 MB)
+- No addon config changes required. New optional upstream env vars are intentionally not exposed: `PLACE_VISITS_THROTTLE_SECONDS`, `SMTP_SSL`/`SMTP_AUTHENTICATION` (the addon sends no email), `PUID`/`PGID` (the addon runs Rails, Postgres, Redis and Sidekiq under its own s6-managed users, not the upstream container user), and `CHIBICHANGE_WIDGET_HOST`/`CHIBICHANGE_SLUG` (the "What's New" widget)
+
 ## 1.7.11-3
 
 - Fix reverse geocoding failing with `Geocoder::NetworkError` on networks that advertise IPv6 but have no working IPv6 egress. `api.geoapify.com` is Cloudflare-fronted and publishes AAAA records; Ruby's geocoder connected to the dead IPv6 address first and failed every job, while `curl` (and the startup healthcheck) silently fell back to IPv4 via Happy Eyeballs. The container now prefers IPv4 (`/etc/gai.conf`), so the geocoder resolves IPv4 first; IPv6 is only reordered, not disabled. The startup Geoapify healthcheck now forces IPv4 so it reflects the path the geocoder actually takes ([#11](https://github.com/thomdev-j/homeassistant-app-dawarich/issues/11))

@@ -15,7 +15,7 @@ Everything is bundled into a single app container:
 ## Installation
 
 1. Add this repository to your Home Assistant app store
-2. Install the Dawarich app (the image is roughly 1 GB — initial download may take a while)
+2. Install the Dawarich app (the image is roughly 1.1 GB — initial download may take a while)
 3. Adjust configuration options (see below)
 4. Start the app — first boot initializes the database and compiles assets, subsequent starts are fast (under 15 seconds)
 5. Open the web UI via the sidebar panel or at `http://<your-ha-ip>:3000`
