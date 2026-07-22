@@ -53,7 +53,7 @@ ha_tracked_entities: "device_tracker.my_phone"
 ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.partner_phone:Bob"
 ```
 
-This creates `alice@dawarich.local` and `bob@dawarich.local` with default password `changemeplease`. Each device's location data is sent to its own user. Users can change their password after first login via the Dawarich settings page. Once multiple users exist, you can use Dawarich's built-in **Family** feature to see everyone on a shared map with different colors.
+This creates `alice@dawarich.local` and `bob@dawarich.local` with default password `changemeplease`. Each device's location data is sent to its own user. Users can change their password after first login via the Dawarich settings page — but **not their email** (see [Important Notes](#important-notes)). Once multiple users exist, you can use Dawarich's built-in **Family** feature to see everyone on a shared map with different colors.
 
 Entities without a `:Name` suffix use the admin user. You can mix both styles:
 ```
@@ -82,6 +82,7 @@ Reverse geocoding converts GPS coordinates into place names. Disabled by default
 - **`application_hosts`** must include the hostname/IP you use to access the UI, or Rails will reject requests (not needed for ingress)
 - **`secret_key_base`** is auto-generated on first start and stored in `/data/dawarich/secret_key_base` — sessions are invalidated if this file is deleted
 - **Admin user** is created on first start with the configured email/password. The password is only set on creation — changing it in the app config won't update an existing user. Use the Dawarich UI to change passwords.
+- **Do not change the auto-generated email addresses** (`admin@dawarich.local`, `alice@dawarich.local`, …) in the Dawarich UI under _Account settings_. The addon matches users by email on every start, so if you rename one, the next restart no longer recognizes it and creates a fresh duplicate account under the original email. Location tracking then silently flows to the new (empty) account while your renamed one stops receiving points. Change the **password** in the UI if you like, but leave the email as-is. (To use a real email, set `admin_email` in the app config *before first start*.)
 
 ## Data Persistence
 
