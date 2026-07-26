@@ -203,6 +203,18 @@ Yes, log into Dawarich and change it through the UI (click your avatar → accou
 
 Log in as admin, go to **Settings → Users**, and promote the user from there.
 
+### How do I switch distances from kilometers to miles?
+
+This is a **per-user setting inside Dawarich**, not an app option. Open the map, click **Settings** in the button cluster on the left edge (keyboard shortcut `S`), then **Appearance → Distance Unit → Miles**. It applies to the map, stats, and trips for that account — each household member sets it for their own user.
+
+The `DISTANCE_UNIT` environment variable used by older self-hosted Docker Compose setups no longer exists in current Dawarich, so there is nothing to set in the app config. If you're still on the legacy map (Map v1), which has no toggle, set it through the API instead — grab your API key from your account settings page:
+
+```bash
+curl -X PATCH "http://<your-ha-ip>:3000/api/v1/settings?api_key=YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"settings":{"maps":{"distance_unit":"mi"}}}'
+```
+
 ### The map is empty after setup
 
 Location data needs time to accumulate. If using HA tracking, check the app logs for `HA Tracker: pushed` messages to confirm data is flowing. Verify your device tracker entities have GPS coordinates in **Developer Tools → States**.
