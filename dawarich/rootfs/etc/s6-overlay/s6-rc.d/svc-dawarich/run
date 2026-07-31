@@ -7,11 +7,66 @@ until pg_isready -h localhost -p 5432 -U postgres -q; do
   sleep 1
 done
 
-# Create database user and database if they don't exist
 DB_USER=$(cat /var/run/s6/container_environment/DATABASE_USERNAME)
 DB_NAME=$(cat /var/run/s6/container_environment/DATABASE_NAME)
 DB_PASS=$(cat /var/run/s6/container_environment/DATABASE_PASSWORD)
 
+# --- Restore the database from a Home Assistant backup, if one is waiting ---
+# HA backups exclude the raw PostgreSQL files (backup_exclude: postgres/** in
+# config.yaml) and ship a pg_dumpall dump instead (backup_pre.sh). Restoring an
+# app therefore hands us an empty data directory plus that dump — if nobody
+# imports it, the app comes up with an empty database and every location the
+# user ever recorded is silently gone.
+DB_DUMP=/data/dawarich/backup.sql
+RESTORE_MARKER=/data/dawarich/.db_restored
+PG_FRESH_INIT=$(cat /var/run/s6/container_environment/PG_FRESH_INIT 2>/dev/null || echo "false")
+
+if [ -s "$DB_DUMP" ]; then
+  DUMP_SUM=$(md5sum "$DB_DUMP" | cut -d' ' -f1)
+
+  # Never import into a database that is in use. A dump is only imported when the
+  # cluster was just initialized, the database does not exist yet, or nothing has
+  # happened in it: nobody ever signed in, nothing was imported and fewer than
+  # 1000 points exist (the app auto-creates its users on boot, and HA tracking can
+  # push a handful of points before we get here).
+  IN_USE=1
+  if [ "$DUMP_SUM" = "$(cat "$RESTORE_MARKER" 2>/dev/null)" ]; then
+    echo "Database dump at ${DB_DUMP} was already imported, skipping restore."
+  elif [ "$PG_FRESH_INIT" = "true" ]; then
+    IN_USE=0
+  elif ! su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -tAc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'\"" | grep -q 1; then
+    IN_USE=0
+  else
+    IN_USE=$(su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -d ${DB_NAME} -tAc \"SELECT (CASE WHEN to_regclass('public.users') IS NULL THEN 0 ELSE (SELECT count(*) FROM users WHERE sign_in_count > 0) END) + (CASE WHEN to_regclass('public.imports') IS NULL THEN 0 ELSE (SELECT count(*) FROM imports) END) + (CASE WHEN to_regclass('public.points') IS NULL THEN 0 ELSE (SELECT count(*) / 1000 FROM points) END)\"" 2>/dev/null | tr -d '[:space:]')
+    [ -z "$IN_USE" ] && IN_USE=1
+  fi
+
+  if [ "$IN_USE" = "0" ]; then
+    echo "Found a database dump from a Home Assistant backup ($(du -h "$DB_DUMP" | cut -f1)), restoring it..."
+    su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -q -c \"DROP DATABASE IF EXISTS ${DB_NAME} WITH (FORCE);\"" 2>&1
+    su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -q -d postgres -f ${DB_DUMP}" 2>&1
+
+    RESTORED=$(su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -d ${DB_NAME} -tAc \"SELECT CASE WHEN to_regclass('public.users') IS NULL THEN 0 ELSE (SELECT count(*) FROM users) END\"" 2>/dev/null | tr -d '[:space:]')
+    if [ -n "$RESTORED" ]; then
+      POINTS=$(su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -d ${DB_NAME} -tAc \"SELECT count(*) FROM points\"" 2>/dev/null | tr -d '[:space:]')
+      echo "Database restored: ${RESTORED} user(s), ${POINTS} point(s)."
+      # The dump carries the role with the password it had when the backup was
+      # taken; re-sync it with the currently configured one.
+      su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -q -c \"ALTER ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASS}';\"" 2>&1
+      printf '%s' "$DUMP_SUM" > "$RESTORE_MARKER"
+      rm -f "$DB_DUMP"
+    else
+      echo "ERROR: restoring ${DB_DUMP} did not produce a usable database. The dump has been kept."
+      echo "ERROR: the app will continue with an empty database — do not take a new backup before this is resolved,"
+      echo "ERROR: it would overwrite the dump. Check the psql errors above."
+    fi
+  elif [ "$IN_USE" != "0" ] && [ "$DUMP_SUM" != "$(cat "$RESTORE_MARKER" 2>/dev/null)" ]; then
+    echo "WARNING: found an unimported database dump at ${DB_DUMP}, but this database is already in use."
+    echo "WARNING: leaving the existing data untouched. Restore into a fresh app install to import that dump."
+  fi
+fi
+
+# Create database user and database if they don't exist
 su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -tc \"SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'\" | grep -q 1 || PATH=/usr/lib/postgresql/17/bin:\$PATH psql -c \"CREATE ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASS}' CREATEDB;\""
 su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -tc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'\" | grep -q 1 || PATH=/usr/lib/postgresql/17/bin:\$PATH psql -c \"CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};\""
 su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -d ${DB_NAME} -c 'CREATE EXTENSION IF NOT EXISTS postgis;'"
@@ -48,7 +103,9 @@ fi
 ADMIN_EMAIL=$(cat /var/run/s6/container_environment/ADMIN_EMAIL 2>/dev/null || echo "")
 ADMIN_PASSWORD=$(cat /var/run/s6/container_environment/ADMIN_PASSWORD 2>/dev/null || echo "")
 if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
-  bundle exec rails runner "
+  # A failure here leaves the app with no account to log in with, so report it
+  # instead of letting the exception scroll past as just another log line.
+  if ! bundle exec rails runner "
     user = User.find_or_create_by!(email: '${ADMIN_EMAIL}') do |u|
       u.password = '${ADMIN_PASSWORD}'
       u.password_confirmation = '${ADMIN_PASSWORD}'
@@ -60,7 +117,11 @@ if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
     end
     File.write('/data/dawarich/api_key', user.api_key)
     puts \"API key saved to /data/dawarich/api_key\"
-  " 2>&1
+  " 2>&1; then
+    echo "ERROR: could not create or verify the admin user (${ADMIN_EMAIL}) — see the error above."
+    echo "ERROR: if it says \"Password is too short\", set an admin_password of at least 12 characters"
+    echo "ERROR: in the app configuration and restart. Without this user there is no account to log in with."
+  fi
 fi
 
 # --- Per-entity API key setup for multi-user device tracking ---
