@@ -30,9 +30,26 @@ printf '%s' "$(bashio::config 'time_zone')" > /var/run/s6/container_environment/
 printf '%s' "$(bashio::config 'application_hosts')" > /var/run/s6/container_environment/APPLICATION_HOSTS
 printf '%s' "$(bashio::config 'background_processing_concurrency')" > /var/run/s6/container_environment/BACKGROUND_PROCESSING_CONCURRENCY
 
+# DOMAIN is what Dawarich uses to build absolute URLs in mails (Devise unlock and
+# password-reset instructions). Unset, rendering those mails raises "Missing host
+# to link to!" and the request 500s — which is what a locked-out account hits on
+# its next login attempt, instead of being told the account is locked.
+PRIMARY_HOST="$(bashio::config 'application_hosts' | cut -d',' -f1 | xargs)"
+[ -z "$PRIMARY_HOST" ] && PRIMARY_HOST="homeassistant.local"
+printf '%s' "$PRIMARY_HOST" > /var/run/s6/container_environment/DOMAIN
+
 # Admin user credentials
 printf '%s' "$(bashio::config 'admin_email')" > /var/run/s6/container_environment/ADMIN_EMAIL
 printf '%s' "$(bashio::config 'admin_password')" > /var/run/s6/container_environment/ADMIN_PASSWORD
+
+# Dawarich rejects passwords shorter than 12 characters. Creating the admin user
+# would fail with "Password is too short" and leave the app with no account to
+# log in with, so warn about it here rather than at the point of failure.
+ADMIN_PW="$(bashio::config 'admin_password')"
+if [ -n "$ADMIN_PW" ] && [ ${#ADMIN_PW} -lt 12 ]; then
+  bashio::log.warning "admin_password is only ${#ADMIN_PW} characters — Dawarich requires at least 12."
+  bashio::log.warning "The admin user cannot be created until you set a longer password in the app configuration."
+fi
 
 # HA location tracker settings
 printf '%s' "$(bashio::config 'ha_tracked_entities')" > /var/run/s6/container_environment/HA_TRACKED_ENTITIES
@@ -101,8 +118,13 @@ else
 fi
 
 # --- PostgreSQL init on first run ---
+# A missing cluster means either a first install or a restored backup (HA backups
+# exclude postgres/**). svc-dawarich needs to tell those apart to decide whether
+# it may import a SQL dump, so record it here.
+printf '%s' "false" > /var/run/s6/container_environment/PG_FRESH_INIT
 if [ ! -f /data/postgres/PG_VERSION ]; then
   bashio::log.info "Initializing PostgreSQL database..."
+  printf '%s' "true" > /var/run/s6/container_environment/PG_FRESH_INIT
   chown -R postgres:postgres /data/postgres
   su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH initdb -D /data/postgres"
   # Trust auth: safe because PG binds to localhost only, port 5432 not exposed

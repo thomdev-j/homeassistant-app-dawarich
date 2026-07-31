@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.1-2
+
+- **Fix data loss when restoring a Home Assistant backup.** Backups exclude the raw PostgreSQL files (`backup_exclude: postgres/**`) and ship a `pg_dumpall` dump instead, but nothing ever imported that dump again — a restored app came up with a freshly initialized, empty database and every recorded location was silently gone, even though the dump sat unused in `/data/dawarich/backup.sql`. The app now imports it on the first start after a restore and logs how many users and points came back. The import only runs into a database nobody has used yet (a freshly initialized cluster, or one where no user ever signed in, nothing was imported and fewer than 1000 points exist), so it can never overwrite data on an app that is already in use
+- Fix a partial `pg_dumpall` being packed into a backup as if it were complete: the dump is written to a temporary file and only moved into place once it succeeds. A failed dump now fails the backup instead of quietly shipping an unusable one
+- Report a failing admin-user creation instead of swallowing it. `admin_password` shorter than Dawarich's 12-character minimum made `User.create!` raise "Password is too short"; the error scrolled past in the log and the app started with **no account to log in with**, which looks exactly like a forgotten password. The password length is now checked at startup and a failure is reported explicitly
+- Set `DOMAIN` (from the first entry of `application_hosts`) so Dawarich can build absolute URLs in Devise mails. Without it, an account that got locked after 10 failed logins hit `Missing host to link to!` while rendering the unlock mail and the login page returned HTTP 500
+
 ## 1.10.1-1
 
 - Upgrade base image to Dawarich 1.10.1 — see upstream release notes for [1.8.0](https://github.com/Freika/dawarich/releases/tag/1.8.0), [1.8.1](https://github.com/Freika/dawarich/releases/tag/1.8.1), [1.9.0](https://github.com/Freika/dawarich/releases/tag/1.9.0), [1.9.1](https://github.com/Freika/dawarich/releases/tag/1.9.1), [1.9.2](https://github.com/Freika/dawarich/releases/tag/1.9.2), [1.10.0](https://github.com/Freika/dawarich/releases/tag/1.10.0), and [1.10.1](https://github.com/Freika/dawarich/releases/tag/1.10.1)

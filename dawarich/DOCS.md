@@ -103,7 +103,9 @@ Home Assistant backups are supported:
 - **Post-backup:** The SQL dump is cleaned up to save disk space
 - Raw PostgreSQL files (`postgres/**`) are excluded from the backup — only the SQL dump is included
 
-To restore from backup, the app will automatically detect and restore the SQL dump on startup if the PostgreSQL data directory is empty.
+To restore from backup, the app detects the SQL dump on startup and imports it. Because the raw PostgreSQL files are not part of the backup, a restore hands the app an empty data directory plus that dump, and the import is what brings your history back — watch the app log for `Database restored: … user(s), … point(s)` on the first start after a restore.
+
+To protect data you have not backed up, the import only runs into a database nobody has used yet (a fresh cluster, or one where no user has ever signed in, nothing has been imported and fewer than 1000 points exist). If you restore a backup onto an app that already holds data, the log says so and your existing data is left alone — restore into a fresh install instead.
 
 ## Network Security
 
