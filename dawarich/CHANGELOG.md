@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.0-1
+
+- Upgrade base image to Dawarich 1.11.0 — see upstream release notes for [1.10.2](https://github.com/Freika/dawarich/releases/tag/1.10.2), [1.10.3](https://github.com/Freika/dawarich/releases/tag/1.10.3), and [1.11.0](https://github.com/Freika/dawarich/releases/tag/1.11.0)
+- **Slow first boot:** 1.11.0 re-checks every point against new GPS noise rules and rebuilds tracks and stats. Expect high CPU and disk load for a while — let it finish
+- **The Accuracy Threshold setting is gone.** Any saved value is ignored, and points it used to hide come back
+- Fixes the crash loop some instances hit upgrading to 1.10.1 (dropping the legacy `points.latitude`/`longitude` columns could not get its lock)
+- No addon config changes required
+
 ## 1.10.1-2
 
 - **Fix data loss when restoring a Home Assistant backup.** Backups exclude the raw PostgreSQL files (`backup_exclude: postgres/**`) and ship a `pg_dumpall` dump instead, but nothing ever imported that dump again — a restored app came up with a freshly initialized, empty database and every recorded location was silently gone, even though the dump sat unused in `/data/dawarich/backup.sql`. The app now imports it on the first start after a restore and logs how many users and points came back. The import only runs into a database nobody has used yet (a freshly initialized cluster, or one where no user ever signed in, nothing was imported and fewer than 1000 points exist), so it can never overwrite data on an app that is already in use
