@@ -41,6 +41,12 @@ RUN mkdir -p /data/postgres /data/redis /data/dawarich/storage /data/dawarich/pu
 # s6 service definitions
 COPY rootfs /
 
+# `docker exec -it ... bash` opens a non-login shell, which reads
+# /etc/bash.bashrc but not /etc/profile.d. Source our env loader from there too
+# so both shell flavours get the addon's runtime environment.
+RUN echo '[ -r /etc/profile.d/dawarich-env.sh ] && . /etc/profile.d/dawarich-env.sh' \
+      >> /etc/bash.bashrc
+
 ENTRYPOINT ["/init"]
 
 ENV S6_SERVICES_GRACETIME=30000 \

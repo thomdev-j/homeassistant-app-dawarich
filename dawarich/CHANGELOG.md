@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.0-2
+
+- **Rails commands now work from a shell in the app.** `rails runner`, `rails console` and rake tasks failed with `OTP_ENCRYPTION_PRIMARY_KEY required in production`, which looks like a broken install but is not: Dawarich derives its OTP encryption keys from `SECRET_KEY_BASE`, and app options are resolved at startup and passed to the services through s6 rather than baked into the image, so a `docker exec` shell never saw them. Interactive shells now load that environment, and a `dawarich-rails` wrapper is included — `docker exec -it addon_5ba57643_dawarich dawarich-rails runner "…"`. See _Running Rails commands_ in the docs ([#16](https://github.com/thomdev-j/homeassistant-app-dawarich/issues/16))
+
 ## 1.11.0-1
 
 - Upgrade base image to Dawarich 1.11.0 — see upstream release notes for [1.10.2](https://github.com/Freika/dawarich/releases/tag/1.10.2), [1.10.3](https://github.com/Freika/dawarich/releases/tag/1.10.3), and [1.11.0](https://github.com/Freika/dawarich/releases/tag/1.11.0)

@@ -85,6 +85,21 @@ Reverse geocoding converts GPS coordinates into place names. Disabled by default
 - **Distance units (km/mi)** are a per-user setting inside Dawarich, not an app option. Open the map → **Settings** button (left edge, shortcut `S`) → **Appearance → Distance Unit**. The `DISTANCE_UNIT` environment variable from older Docker Compose setups no longer exists upstream. On the legacy Map v1 (no toggle) use the API: `curl -X PATCH "http://<ha-ip>:3000/api/v1/settings?api_key=YOUR_KEY" -H "Content-Type: application/json" -d '{"settings":{"maps":{"distance_unit":"mi"}}}'`
 - **Do not change the auto-generated email addresses** (`admin@dawarich.local`, `alice@dawarich.local`, …) in the Dawarich UI under _Account settings_. The addon matches users by email on every start, so if you rename one, the next restart no longer recognizes it and creates a fresh duplicate account under the original email. Location tracking then silently flows to the new (empty) account while your renamed one stops receiving points. Change the **password** in the UI if you like, but leave the email as-is. (To use a real email, set `admin_email` in the app config *before first start*.)
 
+## Running Rails Commands
+
+Maintenance commands from the Dawarich documentation (`rails runner`, `rails console`, rake tasks) need the app's runtime environment. App options are only known at startup, so they are handed to the services by s6 rather than baked into the image — a plain shell does not have them, and Rails stops with `OTP_ENCRYPTION_PRIMARY_KEY required in production`. Use the bundled wrapper, which loads the environment first:
+
+```bash
+docker exec -it addon_5ba57643_dawarich dawarich-rails runner "Visit.suggested.destroy_all"
+docker exec -it addon_5ba57643_dawarich dawarich-rails console
+```
+
+An interactive shell works too — `docker exec -it addon_5ba57643_dawarich bash` loads the same environment, so `cd /var/app && bundle exec rails ...` behaves the way the upstream docs describe.
+
+This needs Docker access, which the _Terminal & SSH_ app only has with protection mode turned off.
+
+> **Do not** set `OTP_ENCRYPTION_PRIMARY_KEY` by hand or regenerate `SECRET_KEY_BASE` to get past that error. The OTP encryption keys are derived from that secret, so changing it makes any existing two-factor data impossible to decrypt.
+
 ## Data Persistence
 
 All data is stored under `/data/` and survives app restarts and updates:

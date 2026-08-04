@@ -1,0 +1,24 @@
+#!/command/with-contenv bash
+# Run a Rails command against the running Dawarich instance.
+#
+# with-contenv loads the addon's runtime environment (DATABASE_*, REDIS_URL,
+# SECRET_KEY_BASE, …), which a plain `docker exec` shell does not get. Without
+# it Rails aborts with "OTP_ENCRYPTION_PRIMARY_KEY required in production".
+#
+# Usage:
+#   docker exec -it addon_5ba57643_dawarich dawarich-rails runner "Visit.suggested.destroy_all"
+#   docker exec -it addon_5ba57643_dawarich dawarich-rails console
+#   docker exec -it addon_5ba57643_dawarich dawarich-rails dawarich:cleanup_suggested_places
+
+if [ "$#" -eq 0 ]; then
+    echo "usage: dawarich-rails <rails command> [args...]" >&2
+    echo "example: dawarich-rails runner \"Visit.suggested.destroy_all\"" >&2
+    exit 2
+fi
+
+cd /var/app || {
+    echo "dawarich-rails: /var/app not found" >&2
+    exit 1
+}
+
+exec bundle exec rails "$@"
