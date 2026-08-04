@@ -90,11 +90,15 @@ Reverse geocoding converts GPS coordinates into place names. Disabled by default
 Maintenance commands from the Dawarich documentation (`rails runner`, `rails console`, rake tasks) need the app's runtime environment. App options are only known at startup, so they are handed to the services by s6 rather than baked into the image — a plain shell does not have them, and Rails stops with `OTP_ENCRYPTION_PRIMARY_KEY required in production`. Use the bundled wrapper, which loads the environment first:
 
 ```bash
-docker exec -it addon_5ba57643_dawarich dawarich-rails runner "Visit.suggested.destroy_all"
-docker exec -it addon_5ba57643_dawarich dawarich-rails console
+# Look up the container name first — it is app_… on current Home Assistant
+# versions and addon_… on older ones:
+docker ps --format '{{.Names}}' | grep dawarich
+
+docker exec -it app_5ba57643_dawarich dawarich-rails runner "Visit.suggested.destroy_all"
+docker exec -it app_5ba57643_dawarich dawarich-rails console
 ```
 
-An interactive shell works too — `docker exec -it addon_5ba57643_dawarich bash` loads the same environment, so `cd /var/app && bundle exec rails ...` behaves the way the upstream docs describe.
+An interactive shell works too — `docker exec -it app_5ba57643_dawarich bash` loads the same environment, so `cd /var/app && bundle exec rails ...` behaves the way the upstream docs describe. It has to be an *interactive* shell: `bash -c '…'` deliberately does not load it, so the add-on's own service scripts are unaffected.
 
 This needs Docker access, which the _Terminal & SSH_ app only has with protection mode turned off.
 

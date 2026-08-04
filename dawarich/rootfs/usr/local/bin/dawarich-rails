@@ -6,9 +6,9 @@
 # it Rails aborts with "OTP_ENCRYPTION_PRIMARY_KEY required in production".
 #
 # Usage:
-#   docker exec -it addon_5ba57643_dawarich dawarich-rails runner "Visit.suggested.destroy_all"
-#   docker exec -it addon_5ba57643_dawarich dawarich-rails console
-#   docker exec -it addon_5ba57643_dawarich dawarich-rails dawarich:cleanup_suggested_places
+#   docker exec -it app_5ba57643_dawarich dawarich-rails runner "Visit.suggested.destroy_all"
+#   docker exec -it app_5ba57643_dawarich dawarich-rails console
+#   docker exec -it app_5ba57643_dawarich dawarich-rails dawarich:cleanup_suggested_places
 
 if [ "$#" -eq 0 ]; then
     echo "usage: dawarich-rails <rails command> [args...]" >&2
