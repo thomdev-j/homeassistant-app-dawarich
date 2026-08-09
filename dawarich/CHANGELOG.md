@@ -3,7 +3,7 @@
 ## 1.11.0-3
 
 - **Fix export and import files being stored outside `/data`, where no backup saw them and every app update threw them away.** `ln -sf` puts the link inside an existing directory instead of replacing it, and the Dawarich image ships a `storage/.keep`, so the link landed at `/var/app/storage/storage`. Present since 1.3.3-1. **Your location history is not affected:** points, tracks, trips, visits, places and stats all live in PostgreSQL under `/data/postgres` and are backed up as usual. What was lost are export downloads and the archived original file of an import ([#17](https://github.com/thomdev-j/homeassistant-app-dawarich/issues/17))
-- Already stranded files cannot be rescued by this update, which recreates the container first. To keep them, run this **before updating**: `docker exec app_5ba57643_dawarich sh -c 'find /var/app/storage -mindepth 1 -maxdepth 1 ! -name .keep ! -name storage -exec mv -n {} /data/dawarich/storage/ \;'`
+- Already stranded files cannot be rescued by this update, which recreates the container first. To keep them, run this **before updating**: `docker exec $(docker ps --format '{{.Names}}' | grep dawarich) sh -c 'find /var/app/storage -mindepth 1 -maxdepth 1 ! -name .keep ! -name storage -exec mv -n {} /data/dawarich/storage/ \;'`
 
 ## 1.11.0-2
 
