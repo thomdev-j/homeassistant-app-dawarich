@@ -71,10 +71,21 @@ su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -tc \"SELECT 1 FRO
 su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -tc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'\" | grep -q 1 || PATH=/usr/lib/postgresql/17/bin:\$PATH psql -c \"CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};\""
 su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH psql -d ${DB_NAME} -c 'CREATE EXTENSION IF NOT EXISTS postgis;'"
 
-# Symlink storage and public directories to persistent data
-rm -rf /var/app/public/uploads
-ln -sf /data/dawarich/storage /var/app/storage
-ln -sf /data/dawarich/public /var/app/public/uploads
+# Symlink storage and public directories to persistent data.
+#
+# Both targets have to be removed first: `ln -sf` does not replace an existing
+# directory, it puts the link *inside* it. The Dawarich image ships
+# `storage/.keep`, so this used to create /var/app/storage/storage and leave
+# ActiveStorage — export files and import originals — writing into the
+# container's own filesystem, where no backup can see it and an app update
+# throws it away.
+#
+# Removal is safe on a service restart: `rm` unlinks a symlink instead of
+# following it, and `-n` keeps `ln` from resolving an already-correct link and
+# nesting the new one under /data.
+rm -rf /var/app/storage /var/app/public/uploads
+ln -sfn /data/dawarich/storage /var/app/storage
+ln -sfn /data/dawarich/public /var/app/public/uploads
 
 cd /var/app
 
