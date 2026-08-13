@@ -24,9 +24,7 @@
 
 ### 1. Install
 
-[![Add App Repository to My Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/thomdev-j/homeassistant-addon-dawarich)
-
-Or manually add this repository URL to your Home Assistant app store:
+Use the **Add App Repository** badge at the top of this page, or add the URL to your Home Assistant app store by hand:
 
 ```
 https://github.com/thomdev-j/homeassistant-app-dawarich
@@ -34,7 +32,7 @@ https://github.com/thomdev-j/homeassistant-app-dawarich
 
 **Settings** → **Apps** → **+ Install App** → **Repositories** → paste the URL → **Add**
 
-Then find **Dawarich** in the store and click **Install**. The image is roughly 1 GB, so the initial download may take a while depending on your internet connection.
+Then find **Dawarich** in the store and click **Install**. The download is roughly 1 GB, so it may take a while depending on your internet connection.
 
 ### 2. Configure
 
@@ -58,45 +56,21 @@ Click **Open Web UI** in the sidebar, or navigate to `http://<your-ha-ip>:3000`.
 
 The app subscribes to Home Assistant's real-time event stream and automatically sends GPS data to Dawarich the instant your device reports a new position. No phone app needed — if Home Assistant already knows your location, Dawarich will too.
 
-### Single user
+### Which devices to track
 
-Track one or more devices under the admin account:
-
-```yaml
-ha_tracked_entities: "device_tracker.my_phone"
-```
-
-Multiple devices for the same user:
+`ha_tracked_entities` takes a comma-separated list of `device_tracker.*` entities. Everything without a suffix is tracked under the admin account:
 
 ```yaml
 ha_tracked_entities: "device_tracker.my_phone, device_tracker.my_tablet"
 ```
 
-### Multiple household members
-
-Add a `:Name` suffix to create a separate Dawarich user per person:
+Add a `:Name` suffix to give a household member their own Dawarich user. Entities sharing a name share one user, and you can mix suffixed and plain entries:
 
 ```yaml
-ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.partner_phone:Bob"
+ha_tracked_entities: "device_tracker.alices_phone:Alice, device_tracker.alices_watch:Alice, device_tracker.bobs_phone:Bob"
 ```
 
-This automatically creates:
-- `alice@dawarich.local` (password: `changemeplease`)
-- `bob@dawarich.local` (password: `changemeplease`)
-
-Each device's location data goes to its own user. Users can change their password after first login via the Dawarich settings page. Once multiple users exist, you can use Dawarich's built-in **Family** feature to see everyone on a shared map with different colors.
-
-Two devices for the same person share one user — just use the same name:
-
-```yaml
-ha_tracked_entities: "device_tracker.alices_phone:Alice, device_tracker.alices_watch:Alice"
-```
-
-You can mix named and unnamed entities — unnamed ones use the admin account:
-
-```yaml
-ha_tracked_entities: "device_tracker.my_phone:Alice, device_tracker.tablet"
-```
+That creates `alice@dawarich.local` and `bob@dawarich.local`, both with the password `changemeplease`, which each user can change after the first login on the Dawarich settings page. Once several users exist, Dawarich's built-in **Family** feature shows everyone on one map in different colors.
 
 ### Real-time tracking
 
@@ -108,23 +82,25 @@ Duplicate locations (same lat/lon) are always skipped. Additionally, positions c
 
 ## All Configuration Options
 
+The same options are also documented in the app's **Documentation** tab ([DOCS.md](dawarich/DOCS.md)).
+
 ### General
 
 | Option | Default | Description |
 |---|---|---|
 | `admin_email` | `admin@dawarich.local` | Email address used to log into Dawarich as admin. |
-| `admin_password` | `changemeplease` | Password for the admin account. Only used on first creation — changing this later won't update an existing account. Change your password through the Dawarich UI instead. |
+| `admin_password` | `changemeplease` | Password for the admin account. Only used when the account is created; change it later through the Dawarich UI. |
 | `time_zone` | `Etc/UTC` | Timezone for displaying dates and times in the UI. Uses standard [tz database names](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) (e.g. `America/New_York`, `Europe/Berlin`, `Asia/Tokyo`). |
-| `database_password` | `dawarich` | Password for the internal PostgreSQL database. Only relevant inside the container — not exposed externally. Changing this after first setup requires manual database migration. |
-| `application_hosts` | `homeassistant.local,localhost` | Comma-separated list of hostnames/IPs that Rails accepts requests from. Only needed when accessing Dawarich directly on port 3000. Ingress access (via the sidebar) works regardless of this setting. Add your HA IP if you get "blocked host" errors, e.g. `homeassistant.local,localhost,192.168.1.100`. |
-| `background_processing_concurrency` | `5` | Number of Sidekiq worker threads for background jobs (imports, reverse geocoding, stats). Range: 1-20. Lower this on resource-constrained devices like Raspberry Pi 3 (`2`-`3`). Increase for faster import processing on powerful hardware. |
+| `database_password` | `dawarich` | Password for the internal PostgreSQL database. It is applied when the database is created, and PostgreSQL only accepts connections from inside the container, so changing it later has no effect. |
+| `application_hosts` | `homeassistant.local,localhost` | Comma-separated hostnames/IPs that Rails accepts requests from. Only needed for direct access on port 3000; ingress works regardless. Add your HA IP if you get "blocked host" errors, e.g. `homeassistant.local,localhost,192.168.1.100`. |
+| `background_processing_concurrency` | `5` | Sidekiq worker threads for background jobs like imports, reverse geocoding and stats (1-20). Lower it on a Raspberry Pi 3 (`2`-`3`), raise it for faster imports on strong hardware. |
 
 ### Device Tracking
 
 | Option | Default | Description |
 |---|---|---|
-| `ha_tracked_entities` | _(empty)_ | Comma-separated list of `device_tracker.*` entity IDs to track. Leave empty to disable automatic tracking. Optionally add a `:Name` suffix to assign a device to a specific user (see [Multi-user](#multiple-household-members) above). Find your entity IDs in HA under **Developer Tools → States**. |
-| `ha_min_distance` | `10` | Minimum distance in meters a device must move before the new position is recorded (0-1000). Filters GPS drift when stationary — typical drift is 3-15m. Set to `0` to disable and record every position change. |
+| `ha_tracked_entities` | _(empty)_ | Comma-separated `device_tracker.*` entity IDs, optionally with a `:Name` suffix (see [Which devices to track](#which-devices-to-track) above). Leave empty to disable automatic tracking. Find your entity IDs under **Developer Tools → States**. |
+| `ha_min_distance` | `10` | Minimum distance in meters a device must move before the new position is recorded (0-1000). Filters GPS drift when stationary, which is typically 3-15m. Set to `0` to record every position change. |
 
 ### Reverse Geocoding
 
@@ -161,25 +137,17 @@ All data persists across app restarts and updates under `/data/`:
 
 ## Security
 
-- PostgreSQL and Redis bind to `localhost` only — not exposed outside the container
-- The admin user is the only account with access to the Settings → Users page
-- Home Assistant ingress provides authenticated access without exposing port 3000
-- If you don't use ingress, port 3000 is available on your local network
+- PostgreSQL and Redis bind to `localhost` only, so they are not reachable outside the container
+- Home Assistant ingress provides authenticated access through the sidebar; port 3000 stays available on your local network if you prefer it
+- Only admin accounts can open the Settings → Users page
 
 ## Hardware Requirements
 
-The app runs PostgreSQL, Redis, Sidekiq, and a Rails app — it needs a reasonable amount of RAM. CPU usage is negligible (< 1% idle).
+The app runs PostgreSQL, Redis, Sidekiq and a Rails app in one container. On a Raspberry Pi 5 it sits between 500 and 800 MB of RAM and idles below 1% CPU, with bursts while background jobs run.
 
-| Device | RAM | Status |
-|---|---|---|
-| Raspberry Pi 5 (8 GB) | ~800 MB (~10%) | Recommended |
-| Raspberry Pi 5 (4 GB) | ~800 MB (~20%) | Works well |
-| Raspberry Pi 4 (8 GB) | ~800 MB (~10%) | Works well |
-| Raspberry Pi 4 (4 GB) | ~800 MB (~20%) | Works, but leaves less room for other apps |
-| Raspberry Pi 4 (2 GB) | ~800 MB (~40%) | Not recommended — tight with HA + other apps |
-| Home Assistant Green (4 GB) | ~800 MB (~20%) | Works well |
+Plan for about 1 GB of free RAM. A 4 GB device such as a Raspberry Pi 4/5 or a Home Assistant Green has room to spare; 2 GB is tight next to Home Assistant itself. Builds are available for `amd64` and `aarch64`.
 
-**Disk space:** The app image is roughly 1 GB. Allow additional space for the PostgreSQL database, which grows with your location history.
+**Disk space:** the download is roughly 1 GB. Allow additional space for the PostgreSQL database, which grows with your location history.
 
 ## FAQ
 
@@ -219,17 +187,17 @@ curl -X PATCH "http://<your-ha-ip>:3000/api/v1/settings?api_key=YOUR_API_KEY" \
 
 Location data needs time to accumulate. If using HA tracking, check the app logs for `HA Tracker: pushed` messages to confirm data is flowing. Verify your device tracker entities have GPS coordinates in **Developer Tools → States**.
 
+### The map doesn't render at all
+
+Since Dawarich 1.12 the old Leaflet map is gone and every map is drawn with MapLibre, which needs WebGL. If the page loads but no map appears, check that WebGL is enabled in your browser. Older tablets and kiosk browsers are the usual suspects.
+
 ### How do I find my device tracker entity IDs?
 
 In Home Assistant, go to **Developer Tools → States** and filter for `device_tracker.`. Entities with `latitude` and `longitude` attributes will work with this app.
 
 ### How do I reset everything and start fresh?
 
-Stop the app, delete the `/data/` directory contents via SSH or the file editor app, and restart. The app will reinitialize from scratch.
-
-### What architectures are supported?
-
-`amd64` (Intel/AMD) and `aarch64` (Raspberry Pi 4/5, Apple Silicon via HA OS).
+Uninstall the app and install it again. That removes its `/data` volume, so the next start initializes an empty database. Take a backup first if there is anything you want to keep.
 
 ## License
 
