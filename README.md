@@ -1,6 +1,6 @@
 # Dawarich Home Assistant App
 
-**Current Dawarich version: 1.11.0** ([release notes](https://github.com/Freika/dawarich/releases/tag/1.11.0))
+**Current Dawarich version: 1.12.1** ([release notes](https://github.com/Freika/dawarich/releases/tag/1.12.1))
 
 [![HA App][ha-app-badge]][ha-app-link]
 
@@ -207,7 +207,7 @@ Log in as admin, go to **Settings → Users**, and promote the user from there.
 
 This is a **per-user setting inside Dawarich**, not an app option. Open the map, click **Settings** in the button cluster on the left edge (keyboard shortcut `S`), then **Appearance → Distance Unit → Miles**. It applies to the map, stats, and trips for that account — each household member sets it for their own user.
 
-The `DISTANCE_UNIT` environment variable used by older self-hosted Docker Compose setups no longer exists in current Dawarich, so there is nothing to set in the app config. If you're still on the legacy map (Map v1), which has no toggle, set it through the API instead — grab your API key from your account settings page:
+The `DISTANCE_UNIT` environment variable used by older self-hosted Docker Compose setups no longer exists in current Dawarich, so there is nothing to set in the app config. You can also set it through the API, for example to switch several users at once. Grab your API key from your account settings page:
 
 ```bash
 curl -X PATCH "http://<your-ha-ip>:3000/api/v1/settings?api_key=YOUR_API_KEY" \

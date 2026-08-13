@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.1-1
+
+- Upgrade base image to Dawarich [1.12.0](https://github.com/Freika/dawarich/releases/tag/1.12.0) and [1.12.1](https://github.com/Freika/dawarich/releases/tag/1.12.1). The old Leaflet map is gone, `/map` now always opens the MapLibre map, so a browser without WebGL can no longer show a map. German, Spanish and French were added, switchable under Settings → General
+- **Slow first boot again:** visit and transportation detection were rewritten, and the upgrade re-detects every account in the background. Expect high CPU for a while, your points are not touched. Old visits and tracks keep their previous detection until that finishes
+- No app config changes required
+
 ## 1.11.0-3
 
 - **Fix export and import files being stored outside `/data`, where no backup saw them and every app update threw them away.** `ln -sf` puts the link inside an existing directory instead of replacing it, and the Dawarich image ships a `storage/.keep`, so the link landed at `/var/app/storage/storage`. Present since 1.3.3-1. **Your location history is not affected:** points, tracks, trips, visits, places and stats all live in PostgreSQL under `/data/postgres` and are backed up as usual. What was lost are export downloads and the archived original file of an import ([#17](https://github.com/thomdev-j/homeassistant-app-dawarich/issues/17))
