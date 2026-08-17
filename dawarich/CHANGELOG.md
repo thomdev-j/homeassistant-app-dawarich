@@ -2,8 +2,13 @@
 
 ## 1.12.2-1
 
-- Upgrade base image to Dawarich 1.12.2
-- See [release notes](https://github.com/Freika/dawarich/releases/tag/1.12.2) for upstream changes
+- Upgrade base image to Dawarich [1.12.2](https://github.com/Freika/dawarich/releases/tag/1.12.2)
+- **Slow first boot again:** two new anomaly rules (visit reports that arrive after you already left, and cold cell-tower fixes with no motion data) are applied to every existing history in the background, and the affected tracks and stats are rebuilt. Expect high CPU for a while, your points are not touched
+- Before the app starts, the upgrade also rebuilds an index on the points table. On a large history that can take several minutes, during which you get the loading page. Let it finish, do not restart the app
+- **Distance for past months stays as it is.** A jump across a tracking gap no longer counts towards daily and monthly distance, but only for new data. To apply it to what you already have, run Map v2 → Settings → Recalculate tracks & stats once
+- Google Timeline phone exports keep altitude, accuracy and speed from `rawSignals` again. Points already imported keep their empty values, and importing the same file again skips them, so delete the old import first if you want those fields filled
+- Fixes: the map no longer jumps to a place you just left, the Tracks layer toggle survives a page reload, the Family page no longer fails on old points without a timestamp, and exports no longer fail on legacy places without coordinates
+- No app config changes required
 
 ## 1.12.1-1
 

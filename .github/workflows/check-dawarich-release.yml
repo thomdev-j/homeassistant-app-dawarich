@@ -83,8 +83,12 @@ jobs:
           echo "Fetching all releases between ${CURRENT} and latest..."
           RELEASES=$(curl -sf "https://api.github.com/repos/Freika/dawarich/releases?per_page=50")
 
-          # Collect all release bodies between current and latest (exclusive of current)
-          NOTES=$(echo "$RELEASES" | jq -r --arg current "$CURRENT" '
+          # Everything released since the version we currently package, newest
+          # first: walk the list from the newest and stop at the current tag.
+          # Derived once, because a second walk that filtered $current out
+          # before looking for it never stopped, and reported the whole release
+          # history as the jump size (35 versions for 1.12.1 to 1.12.2).
+          NEWER=$(echo "$RELEASES" | jq --arg current "$CURRENT" '
             [ .[] | select(.prerelease == false and .draft == false) ]
             | sort_by(.published_at) | reverse
             | [foreach .[] as $r (
@@ -97,40 +101,11 @@ jobs:
                 .items
               )]
             | last
-            | .[]
-            | "### " + .tag_name + "\n" + .body + "\n"
           ')
 
-          # Count how many versions we're jumping
-          COUNT=$(echo "$RELEASES" | jq --arg current "$CURRENT" '
-            [ .[] | select(.prerelease == false and .draft == false) ]
-            | sort_by(.published_at) | reverse
-            | [limit(100; .[] | select(.tag_name != $current))]
-            | [foreach .[] as $r (
-                {stop: false, items: []};
-                if .stop then .
-                elif $r.tag_name == $current then .stop = true
-                else .items += [$r] end;
-                .items
-              )]
-            | last | length
-          ')
-
-          VERSIONS=$(echo "$RELEASES" | jq -r --arg current "$CURRENT" '
-            [ .[] | select(.prerelease == false and .draft == false) ]
-            | sort_by(.published_at) | reverse
-            | [foreach .[] as $r (
-                {stop: false, items: []};
-                if .stop then . else
-                  if $r.tag_name == $current then .stop = true
-                  else .items += [$r]
-                  end
-                end;
-                .items
-              )]
-            | last
-            | .[].tag_name
-          ')
+          NOTES=$(echo "$NEWER" | jq -r '.[] | "### " + .tag_name + "\n" + .body + "\n"')
+          VERSIONS=$(echo "$NEWER" | jq -r '.[].tag_name')
+          COUNT=$(echo "$NEWER" | jq 'length')
 
           echo ""
           echo "Found ${COUNT} release(s) to include:"
