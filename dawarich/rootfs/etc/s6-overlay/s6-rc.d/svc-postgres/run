@@ -1,5 +1,11 @@
 #!/usr/bin/with-contenv bash
+# checkpoint_timeout is 5min upstream, so PostgreSQL flushes its dirty buffers
+# twelve times an hour for the few hundred kB of WAL Dawarich writes in between.
+# On the SD cards and USB SSDs most Home Assistant hosts run on, that fsync burst
+# stalls the whole disk for seconds. Durability does not depend on it: a commit is
+# made safe by the WAL, and a checkpoint only bounds crash recovery.
 exec su - postgres -c "PATH=/usr/lib/postgresql/17/bin:\$PATH postgres -D /data/postgres -k /run/postgresql \
   -c shared_buffers=256MB \
   -c work_mem=16MB \
-  -c effective_cache_size=512MB"
+  -c effective_cache_size=512MB \
+  -c checkpoint_timeout=30min"

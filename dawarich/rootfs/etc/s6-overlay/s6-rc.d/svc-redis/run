@@ -1,7 +1,13 @@
 #!/usr/bin/with-contenv bash
+# The append-only file below already persists every second, so Redis's default
+# snapshot rules only fork and rewrite the whole dataset again for no added
+# durability. Sidekiq changes enough keys to trip the busiest rule (10000 in a
+# minute) every minute or two. --save '' drops the snapshots and keeps the AOF,
+# which is what a restore reads back anyway.
 exec redis-server \
   --bind 127.0.0.1 \
   --port 6379 \
   --dir /data/redis \
   --appendonly yes \
+  --save '' \
   --ignore-warnings ARM64-COW-BUG

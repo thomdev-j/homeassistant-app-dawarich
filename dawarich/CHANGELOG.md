@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.2-2
+
+- **PostgreSQL now checkpoints every 30 minutes instead of every 5.** The upstream default flushed the dirty buffer cache twelve times an hour for the few hundred kB the app writes in between. On the SD cards and USB SSDs most Home Assistant hosts run on, that burst of fsyncs can stall the disk for seconds, and nothing else on the machine gets to write while it lasts. Your data is no less safe: a commit is made durable by the write-ahead log, and a checkpoint only decides how much of that log has to be replayed after an unclean shutdown
+- **Redis no longer writes RDB snapshots.** It already appends to disk every second, so the default rule of snapshotting whenever 10000 keys change in a minute forked and rewrote the whole dataset every minute or two without making anything safer, and background job traffic alone kept it firing. Backups and restores are unaffected, they use the append-only file
+- No app config changes required
+
 ## 1.12.2-1
 
 - Upgrade base image to Dawarich [1.12.2](https://github.com/Freika/dawarich/releases/tag/1.12.2)
