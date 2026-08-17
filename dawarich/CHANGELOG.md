@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.2-1
+
+- Upgrade base image to Dawarich 1.12.2
+- See [release notes](https://github.com/Freika/dawarich/releases/tag/1.12.2) for upstream changes
+
 ## 1.12.1-1
 
 - Upgrade base image to Dawarich [1.12.0](https://github.com/Freika/dawarich/releases/tag/1.12.0) and [1.12.1](https://github.com/Freika/dawarich/releases/tag/1.12.1). The old Leaflet map is gone, `/map` now always opens the MapLibre map, so a browser without WebGL can no longer show a map. German, Spanish and French were added, switchable under Settings → General
