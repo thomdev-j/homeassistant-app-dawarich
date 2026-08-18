@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.13.0-3
+
+- **Stop the background job worker logging hundreds of Redis timeouts a day.** Redis saves to disk once a second, and on the SD cards and USB drives Home Assistant hosts usually run on, that write can take several seconds whenever something else is busy on the same disk. Redis pauses while it happens, and Sidekiq gave up after 3 seconds and reconnected. It now waits 10
+- No job was ever lost to this and nothing about your data or your config changes, the log just becomes readable again
+
 ## 1.13.0-2
 
 - **Fix the new "Tiled rendering" beta not working in the Home Assistant sidebar.** The map builds its tile address from the browser address bar, which leaves out the ingress path, so every tile came back as a 404 from Home Assistant itself and the map said "Could not load map tiles". The built-in proxy now corrects that address, and the same correction keeps the API key attached to the request. Tiles were already fine on port 3000 and stay that way
