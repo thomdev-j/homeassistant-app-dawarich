@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.13.0-2
+
+- **Fix the new "Tiled rendering" beta not working in the Home Assistant sidebar.** The map builds its tile address from the browser address bar, which leaves out the ingress path, so every tile came back as a 404 from Home Assistant itself and the map said "Could not load map tiles". The built-in proxy now corrects that address, and the same correction keeps the API key attached to the request. Tiles were already fine on port 3000 and stay that way
+- Nothing else changes: the beta is still off until you switch it on, and no app config changes are required. If you already tried it on 1.13.0-1, reload the map page once
+
 ## 1.13.0-1
 
 - Upgrade base image to Dawarich [1.13.0](https://github.com/Freika/dawarich/releases/tag/1.13.0). Nothing changes unless you go looking for it, the one new feature is off until you switch it on

@@ -110,6 +110,15 @@ http {
             sub_filter '"/assets/' '"INGRESS_PATH/assets/';
             sub_filter "'/assets/" "'INGRESS_PATH/assets/";
 
+            # MapLibre builds its vector-tile URL from window.location.origin,
+            # so the ingress prefix is missing, and it fetches the tiles from a
+            # web worker that the patch script below never reaches. Rewriting
+            # the literal in the served JS covers both places it appears: the
+            # URL template in points_mvt_layer.js, and the startsWith() guard in
+            # map_initializer.js that decides whether to attach the API key.
+            sub_filter '"/api/v1/tiles/' '"INGRESS_PATH/api/v1/tiles/';
+            sub_filter "'/api/v1/tiles/" "'INGRESS_PATH/api/v1/tiles/";
+
             # CSS url() references
             sub_filter 'url(/' 'url(INGRESS_PATH/';
             sub_filter "url('/" "url('INGRESS_PATH/";
