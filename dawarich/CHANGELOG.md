@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.13.0-1
+
+- Upgrade base image to Dawarich [1.13.0](https://github.com/Freika/dawarich/releases/tag/1.13.0). Nothing changes unless you go looking for it, the one new feature is off until you switch it on
+- **New "Tiled rendering" beta** under Map v2 → Settings. Points are drawn from vector tiles, so a wide date range only loads what is on screen. It does not work through the Home Assistant sidebar: the map asks for its tiles at the wrong address there and reports "Could not load map tiles". Open the app on port 3000 to try it, otherwise leave it off
+- The upgrade drops three indexes on the points table that 1.12.2 made redundant, which frees disk space and makes storing every new point a little cheaper. Your points, tracks, visits and stats are untouched, and the migration verifies the replacement index is healthy before it removes anything
+- No app config changes required
+
 ## 1.12.2-2
 
 - **PostgreSQL now checkpoints every 30 minutes instead of every 5.** The upstream default flushed the dirty buffer cache twelve times an hour for the few hundred kB the app writes in between. On the SD cards and USB SSDs most Home Assistant hosts run on, that burst of fsyncs can stall the disk for seconds, and nothing else on the machine gets to write while it lasts. Your data is no less safe: a commit is made durable by the write-ahead log, and a checkpoint only decides how much of that log has to be replayed after an unclean shutdown
