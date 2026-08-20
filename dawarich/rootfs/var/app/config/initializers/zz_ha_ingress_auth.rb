@@ -160,6 +160,16 @@ module HomeAssistantIngressAuth
 
       Rails.logger.info("[ha-ingress-auth] created account #{email} for Home Assistant user #{describe(identity)}") if created
       user
+    rescue Auth::FindOrCreateOauthUser::LinkVerificationSent
+      # Somebody already owns the address this user's account would get, and it
+      # is not theirs to take. Say what to do about it, because the upstream
+      # exception name explains nothing to whoever reads the log.
+      Rails.logger.warn(
+        "[ha-ingress-auth] cannot sign in Home Assistant user #{describe(identity)}: the account #{email} " \
+        'already exists and is not linked to them. Sign into that account and change its email, or map this ' \
+        'user to the right account with ha_tracked_entities. Showing the login form.'
+      )
+      nil
     rescue StandardError => e
       Rails.logger.warn("[ha-ingress-auth] could not create an account for #{describe(identity)}: #{e.class}: #{e.message}")
       nil
