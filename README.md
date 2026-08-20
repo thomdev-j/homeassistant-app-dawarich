@@ -1,14 +1,14 @@
-# Dawarich Home Assistant App
+# Dawarich Home Assistant Add-on (App)
 
 **Current Dawarich version: 1.13.0** ([release notes](https://github.com/Freika/dawarich/releases/tag/1.13.0))
 
 [![HA App][ha-app-badge]][ha-app-link]
 
-[![Add App Repository to My Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/thomdev-j/homeassistant-app-dawarich)
+[![Add App Repository to My Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/thomdev-j/dawarich-home-assistant-addon)
 
 ![Dawarich running inside Home Assistant](images/screenshot.jpg)
 
-**This app runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
+**This add-on (called an app in newer Home Assistant versions) runs a full [Dawarich](https://github.com/Freika/dawarich) instance directly on your Home Assistant OS device** — a self-hosted alternative to Google Timeline. No separate server or Docker Compose setup needed. Just install, and you have location tracking with full control of your data.
 
 > **Note:** This app requires [Home Assistant OS](https://www.home-assistant.io/installation/) (HAOS), which provides the app system. Home Assistant Container or Core installations cannot run apps.
 
@@ -27,8 +27,15 @@
 Use the **Add App Repository** badge at the top of this page, or add the URL to your Home Assistant app store by hand:
 
 ```
-https://github.com/thomdev-j/homeassistant-app-dawarich
+https://github.com/thomdev-j/dawarich-home-assistant-addon
 ```
+
+> **Already installed?** Nothing to do. This repository was renamed from
+> `homeassistant-app-dawarich`, and GitHub redirects the old address, so Home
+> Assistant keeps updating your existing install by itself. Do **not** remove
+> and re-add the repository under the new URL: Home Assistant identifies an app
+> store by a hash of the URL you added, so re-adding creates a second, empty
+> install instead of finding your data.
 
 **Settings** → **Apps** → **+ Install App** → **Repositories** → paste the URL → **Add**
 
@@ -209,7 +216,7 @@ This app builds on top of the [Dawarich](https://github.com/Freika/dawarich) Doc
 
 - [Dawarich](https://github.com/Freika/dawarich) — upstream project
 - [Dawarich Documentation](https://dawarich.app/) — full feature documentation
-- [Report an issue](https://github.com/thomdev-j/homeassistant-app-dawarich/issues)
+- [Report an issue](https://github.com/thomdev-j/dawarich-home-assistant-addon/issues)
 
 [ha-app-badge]: https://img.shields.io/badge/Home%20Assistant-App-blue?logo=homeassistant
-[ha-app-link]: https://github.com/thomdev-j/homeassistant-app-dawarich
+[ha-app-link]: https://github.com/thomdev-j/dawarich-home-assistant-addon
