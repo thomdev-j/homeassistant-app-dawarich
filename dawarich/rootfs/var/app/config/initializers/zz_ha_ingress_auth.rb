@@ -165,7 +165,7 @@ module HomeAssistantIngressAuth
       slug.presence || "ha-#{identity[:id]}"
     end
 
-    def describe(identity)
+    public def describe(identity)
       identity[:display_name].presence || identity[:name].presence || identity[:id]
     end
 
@@ -212,9 +212,22 @@ ActiveSupport.on_load(:action_controller_base) do
     return if signed_in && signed_in.provider == HomeAssistantIngressAuth::PROVIDER && signed_in.uid == identity[:id]
 
     user = HomeAssistantIngressAuth.user_for(identity)
-    return if user.nil?
 
-    warden.set_user(user, scope: :user)
+    if user.nil?
+      # Home Assistant told us who this is, and it is not whoever the session
+      # belongs to. Browsers keep that session, so on a shared device the next
+      # person to sign into Home Assistant would be handed the previous one's
+      # map and history. Nobody is better than the wrong body.
+      if signed_in
+        Rails.logger.info(
+          "[ha-ingress-auth] signing out #{signed_in.email}: Home Assistant is now #{HomeAssistantIngressAuth.describe(identity)}"
+        )
+        warden.logout(:user)
+      end
+      return
+    end
+
+    warden.set_user(user, scope: :user) unless signed_in == user
     redirect_to(root_path) if request.path.match?(%r{/users/sign_in\z})
   rescue StandardError => e
     # Never lock anyone out because this failed: fall through to the login form.
