@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.0-4
+
+- **New: open Dawarich from the sidebar and you are already signed in as yourself.** Home Assistant knows who is looking at the page, so the app can match that to your Dawarich account through the entities in `ha_tracked_entities` and skip the password. Set `ingress_auto_login` to `on` to use it
+- **Nothing changes on an existing install until you ask for it.** The default, `auto`, means on for new installs and off for one that already exists, because an update should not change how you log in. Your password still works, on port 3000 and after signing out, and the admin account is untouched
+- If nobody can be matched you get the normal login form, never a new empty account, and the log says which Home Assistant user it could not place. Only requests that come through Home Assistant itself can claim an identity, so nothing else on your network can sign in as you
+
 ## 1.13.0-3
 
 - **Stop the background job worker logging hundreds of Redis timeouts a day.** Redis saves to disk once a second, and on the SD cards and USB drives Home Assistant hosts usually run on, that write can take several seconds whenever something else is busy on the same disk. Redis pauses while it happens, and Sidekiq gave up after 3 seconds and reconnected. It now waits 10
