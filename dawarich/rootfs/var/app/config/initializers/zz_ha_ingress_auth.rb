@@ -42,14 +42,21 @@ module HomeAssistantIngressAuth
       return nil unless enabled?
       return nil unless trusted?(request)
 
-      id = request.get_header(USER_ID_HEADER).to_s.strip
+      id = header(request, USER_ID_HEADER)
       return nil if id.blank?
 
       {
         id: id,
-        name: request.get_header(USER_NAME_HEADER).to_s.strip,
-        display_name: request.get_header(DISPLAY_NAME_HEADER).to_s.strip
+        name: header(request, USER_NAME_HEADER),
+        display_name: header(request, DISPLAY_NAME_HEADER)
       }
+    end
+
+    # Rack hands header values back as ASCII-8BIT, and a name like "Jörg" then
+    # blows up anything expecting text (transliterate raises outright). Tag them
+    # as the UTF-8 they actually are and drop any invalid bytes.
+    def header(request, key)
+      request.get_header(key).to_s.dup.force_encoding(Encoding::UTF_8).scrub('').strip
     end
 
     # Look up, adopt, or (only where it is safe) create. Returns nil to mean
@@ -57,6 +64,8 @@ module HomeAssistantIngressAuth
     def user_for(identity)
       existing = User.find_by(provider: PROVIDER, uid: identity[:id])
       return existing if existing
+
+      release_identity_from_deleted_accounts(identity)
 
       mapped = mapped_user(identity)
       return adopt(mapped, identity) if mapped
@@ -100,6 +109,28 @@ module HomeAssistantIngressAuth
         "[ha-ingress-auth] linked Home Assistant user #{describe(identity)} to existing account #{user.email}"
       )
       user
+    rescue ActiveRecord::RecordNotUnique
+      Rails.logger.warn(
+        "[ha-ingress-auth] Home Assistant user #{describe(identity)} is already linked to another Dawarich " \
+        "account, so #{user.email} was left alone. Showing the login form."
+      )
+      nil
+    end
+
+    # Dawarich deletes users softly: the row stays behind with deleted_at set,
+    # hidden from every normal query but still holding this identity in the
+    # unique index. Without handing it back, deleting an account would strand
+    # that Home Assistant user on the login form for good.
+    def release_identity_from_deleted_accounts(identity)
+      released = User.unscoped
+                     .where(provider: PROVIDER, uid: identity[:id])
+                     .where.not(deleted_at: nil)
+                     .update_all(provider: nil, uid: nil)
+      return if released.zero?
+
+      Rails.logger.info(
+        "[ha-ingress-auth] released #{describe(identity)} from #{released} deleted account(s)"
+      )
     end
 
     def create(identity)
