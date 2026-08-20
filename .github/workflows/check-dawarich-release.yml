@@ -1,8 +1,10 @@
 name: Check for new Dawarich release
 
 on:
-  schedule:
-    - cron: "0 8 * * 1" # every Monday at 08:00 UTC
+  # No longer on a schedule: a Claude routine checks for new upstream releases
+  # daily at 16:00 Europe/Vienna and opens the bump PR itself, with an actual
+  # read of the upstream diff rather than a keyword scan of the release notes.
+  # Kept runnable by hand as a fallback if that routine is paused or broken.
   workflow_dispatch: # allow manual trigger
 
 jobs:
