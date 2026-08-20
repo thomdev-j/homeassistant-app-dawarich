@@ -261,9 +261,8 @@ echo "$HA_USER_MAP" > /data/dawarich/ha_user_map.json
 
 INGRESS_AUTO_LOGIN=$(cat /var/run/s6/container_environment/INGRESS_AUTO_LOGIN 2>/dev/null || echo off)
 if [ "$INGRESS_AUTO_LOGIN" = "on" ] && [ "$MAPPED_COUNT" = "0" ]; then
-  echo "WARNING: ingress auto-login is on, but no Home Assistant account could be matched to a Dawarich user."
-  echo "WARNING: point ha_tracked_entities at entities Home Assistant ties to an account (a person entity, or a"
-  echo "WARNING: device_tracker listed under one), otherwise everyone keeps getting the normal login form."
+  echo "Auto-login: nothing in ha_tracked_entities points at a Home Assistant account, so anyone opening the"
+  echo "Auto-login: app gets their own Dawarich account, or the one already named after them."
 fi
 
 # Precompile assets if needed

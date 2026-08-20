@@ -101,9 +101,12 @@ Nothing extra to configure.
 - **Existing installs are left alone.** `auto` means on for new installs and off for one
   that predates the feature, because an update should not change how you log in. Turn it
   `on` when you want it.
-- **You are only ever signed into an account that already existed.** If nobody can be
-  matched, you get the normal login form rather than a new, empty account. The app log says
-  which Home Assistant user it could not place, and the mapping it built at startup.
+- **You always land in your own account, never someone else's.** If nobody in
+  `ha_tracked_entities` matches, it looks for the account this app would have named after
+  you (Home Assistant user `thomas` lines up with `thomas@dawarich.local`) and takes you
+  there with your history. Only when nothing matches at all does it create a fresh account,
+  so a new person in the household simply gets their own map. An account already linked to
+  somebody else is never taken over.
 - **Your password still works.** It is unchanged, and it is still what you use on port 3000,
   or after signing out. Signing out keeps you signed out for 30 minutes, so you can log in
   as somebody else.

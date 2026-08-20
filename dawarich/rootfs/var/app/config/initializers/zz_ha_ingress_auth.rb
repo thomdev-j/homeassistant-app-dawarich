@@ -23,15 +23,10 @@ module HomeAssistantIngressAuth
   # would hand the session straight back and the button would look broken.
   OPT_OUT_COOKIE = :dawarich_ingress_auto_login_off
   OPT_OUT_FOR = 30.minutes
-  REFUSAL_LOG_EVERY = 5.minutes
 
   class << self
     def enabled?
       ENV['INGRESS_AUTO_LOGIN'].to_s == 'on' && secret.present?
-    end
-
-    def create_unmatched?
-      ENV['INGRESS_AUTH_CREATE_UNMATCHED'].to_s == 'true'
     end
 
     def secret
@@ -67,12 +62,10 @@ module HomeAssistantIngressAuth
 
       release_identity_from_deleted_accounts(identity)
 
-      mapped = mapped_user(identity)
+      mapped = mapped_user(identity) || account_named_after(identity)
       return adopt(mapped, identity) if mapped
-      return create(identity) if create_unmatched?
 
-      log_refusal(identity)
-      nil
+      create(identity)
     end
 
     private
@@ -90,6 +83,27 @@ module HomeAssistantIngressAuth
       return nil if email.blank?
 
       User.find_by(email: email)
+    end
+
+    # Not everyone tracks through Home Assistant: plenty of people use the
+    # Dawarich phone app or an import, so they never appear in
+    # ha_tracked_entities and the map cannot find them. Creating a second,
+    # empty account for those people is the one outcome that looks like lost
+    # data, so before creating anything, look for the account this add-on would
+    # have made for them. It names accounts <name>@dawarich.local, so a Home
+    # Assistant user "thomas" lines up with thomas@dawarich.local.
+    #
+    # Only an exact, single, unclaimed match counts. Anything ambiguous falls
+    # through to creating a new account, which is recoverable, rather than
+    # signing someone into a stranger's history, which is not.
+    def account_named_after(identity)
+      candidates = [identity[:name], identity[:display_name]].filter_map do |value|
+        next if value.blank?
+
+        "#{slugify(value)}@dawarich.local"
+      end.uniq
+
+      candidates.filter_map { |email| User.find_by(email: email, provider: nil) }.first
     end
 
     # Built at boot by svc-dawarich from the person entities behind
@@ -161,26 +175,15 @@ module HomeAssistantIngressAuth
 
     def slug(identity)
       base = identity[:name].presence || identity[:display_name].presence || identity[:id]
-      slug = ActiveSupport::Inflector.transliterate(base.to_s).downcase.gsub(/[^a-z0-9]+/, '-').gsub(/\A-+|-+\z/, '')
-      slug.presence || "ha-#{identity[:id]}"
+      slugify(base).presence || "ha-#{identity[:id]}"
+    end
+
+    def slugify(value)
+      ActiveSupport::Inflector.transliterate(value.to_s).downcase.gsub(/[^a-z0-9]+/, '-').gsub(/\A-+|-+\z/, '')
     end
 
     public def describe(identity)
       identity[:display_name].presence || identity[:name].presence || identity[:id]
-    end
-
-    # One line per user per window: this fires on every request of every page
-    # load, and the point is to be findable in the log, not to fill it.
-    def log_refusal(identity)
-      @refusals ||= {}
-      last = @refusals[identity[:id]]
-      return if last && last > REFUSAL_LOG_EVERY.ago
-
-      @refusals[identity[:id]] = Time.current
-      Rails.logger.info(
-        "[ha-ingress-auth] no Dawarich account is mapped to Home Assistant user #{describe(identity)}, " \
-        'showing the login form. Map their person entity with ha_tracked_entities to sign them in automatically.'
-      )
     end
   end
 end

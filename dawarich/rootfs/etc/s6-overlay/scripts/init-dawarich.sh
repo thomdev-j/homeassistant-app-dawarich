@@ -170,22 +170,8 @@ case "$(bashio::config 'ingress_auto_login')" in
   *)   if [ -f "$LEGACY_INSTALL_MARKER" ]; then INGRESS_AUTO_LOGIN="off"; else INGRESS_AUTO_LOGIN="on"; fi ;;
 esac
 
-# Creating an account for an unknown Home Assistant user is only safe where there
-# is no history to miss, so it is limited to installs that started with this
-# feature. On an older install an unmatched user gets the login form instead.
-if [ "$INGRESS_AUTO_LOGIN" = "on" ] && [ ! -f "$LEGACY_INSTALL_MARKER" ]; then
-  INGRESS_AUTH_CREATE_UNMATCHED="true"
-else
-  INGRESS_AUTH_CREATE_UNMATCHED="false"
-fi
 printf '%s' "$INGRESS_AUTO_LOGIN" > /var/run/s6/container_environment/INGRESS_AUTO_LOGIN
-printf '%s' "$INGRESS_AUTH_CREATE_UNMATCHED" > /var/run/s6/container_environment/INGRESS_AUTH_CREATE_UNMATCHED
-
-if [ "$INGRESS_AUTO_LOGIN" = "on" ]; then
-  bashio::log.info "Ingress auto-login: on (create accounts for unknown users: ${INGRESS_AUTH_CREATE_UNMATCHED})"
-else
-  bashio::log.info "Ingress auto-login: off"
-fi
+bashio::log.info "Ingress auto-login: ${INGRESS_AUTO_LOGIN}"
 
 # Only Supervisor may present a Home Assistant identity, so nginx is given the
 # addresses it answers on. Every address is listed, IPv4 and IPv6 alike, because
